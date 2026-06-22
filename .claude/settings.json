@@ -1,0 +1,10 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(node verify-mobile.mjs)",
+      "Bash(rm -f /tmp/m-*.png)",
+      "Bash(rm -rf /tmp/pwtest)",
+      "Bash(kill 233680)"
+    ]
+  }
+}

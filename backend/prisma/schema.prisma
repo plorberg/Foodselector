@@ -1,0 +1,202 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum FieldStatus {
+  RECOGNIZED
+  UNCERTAIN
+  CONFLICTING
+  CONFIRMED
+  MODIFIED
+  DISCARDED
+}
+
+enum SourceType {
+  WEBSITE
+  SEARCH
+  MAPS
+  MENU
+  REVIEW
+  USER_PASTED_TEXT
+  OPENSTREETMAP
+  GOOGLE_PLACES
+  GOOGLE_MAPS_LINK
+  OTHER
+}
+
+enum SourceReliability {
+  LOW
+  MEDIUM
+  HIGH
+}
+
+model Restaurant {
+  id          String  @id @default(uuid())
+  name        String
+  categories  String[]
+  subcategories String[]
+  address     String?
+  city        String?
+  district    String?
+  country     String?
+  latitude    Float?
+  longitude   Float?
+  website     String?
+  googleMapsLink String?
+  googlePlaceId  String?
+  phone       String?
+  openingHours Json?
+  priceLevel  Int?
+  distance    Float?
+  tags        String[]
+  signatureDishes String[]
+  vegetarianOptions Boolean?
+  veganOptions      Boolean?
+  reservationRecommended Boolean?
+  deliveryAvailable Boolean?
+  takeawayAvailable Boolean?
+  ambience    String[]
+  suitability String[]
+  personalRating Float?
+  externalRating Float?
+  notes       String?
+  favorite    Boolean @default(false)
+  blacklisted Boolean @default(false)
+  lastVisitedAt DateTime?
+  fieldStatuses    Json?
+  confidenceByField Json?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  sources         RestaurantSource[]
+  extractedFacts  ExtractedFact[]
+  visits          RestaurantVisit[]
+  suggestions     SuggestionHistory[]
+
+  @@map("restaurants")
+}
+
+model RestaurantSource {
+  id           String   @id @default(uuid())
+  restaurantId String
+  restaurant   Restaurant @relation(fields: [restaurantId], references: [id], onDelete: Cascade)
+  type         SourceType
+  url          String?
+  title        String?
+  retrievedAt  DateTime
+  reliability  SourceReliability
+
+  createdAt    DateTime @default(now())
+
+  @@map("restaurant_sources")
+}
+
+model ExtractedFact {
+  id           String   @id @default(uuid())
+  restaurantId String
+  restaurant   Restaurant @relation(fields: [restaurantId], references: [id], onDelete: Cascade)
+  field        String
+  value        Json
+  sourceType   SourceType
+  sourceUrl    String?
+  confidence   Float
+  explanation  String
+  status       FieldStatus @default(RECOGNIZED)
+
+  createdAt    DateTime @default(now())
+
+  @@map("extracted_facts")
+}
+
+model RestaurantVisit {
+  id           String   @id @default(uuid())
+  restaurantId String
+  restaurant   Restaurant @relation(fields: [restaurantId], references: [id], onDelete: Cascade)
+  visitedAt    DateTime
+  rating       Float?
+  notes        String?
+
+  createdAt    DateTime @default(now())
+
+  @@map("restaurant_visits")
+}
+
+model DecisionProfile {
+  id          String  @id @default(uuid())
+  name        String  @unique
+  description String?
+  filters     Json
+  weights     Json
+  randomFactor Float  @default(0.2)
+  repeatBlockDays Int @default(14)
+  suggestionCount Int @default(3)
+  isDefault   Boolean @default(false)
+
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  suggestions SuggestionHistory[]
+
+  @@map("decision_profiles")
+}
+
+model Category {
+  id   String @id @default(uuid())
+  name String @unique
+
+  @@map("categories")
+}
+
+model Tag {
+  id   String @id @default(uuid())
+  name String @unique
+
+  @@map("tags")
+}
+
+model Classification {
+  id          String  @id @default(uuid())
+  key         String  @unique
+  label       String
+  description String?
+  rules       Json?
+
+  @@map("classifications")
+}
+
+model AppSetting {
+  key   String @id
+  value Json
+
+  @@map("app_settings")
+}
+
+model AnalysisRun {
+  id         String   @id @default(uuid())
+  analyzer   String
+  input      Json
+  result     Json
+  warnings   String[]
+  createdAt  DateTime @default(now())
+
+  @@map("analysis_runs")
+}
+
+model SuggestionHistory {
+  id               String   @id @default(uuid())
+  restaurantId     String
+  restaurant       Restaurant @relation(fields: [restaurantId], references: [id], onDelete: Cascade)
+  decisionProfileId String?
+  decisionProfile  DecisionProfile? @relation(fields: [decisionProfileId], references: [id])
+  mode             String
+  reasoning        String[]
+  accepted         Boolean?
+  createdAt        DateTime @default(now())
+
+  @@map("suggestion_history")
+}
