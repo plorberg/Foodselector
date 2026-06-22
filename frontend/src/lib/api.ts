@@ -1,4 +1,13 @@
-const API_BASE = import.meta.env.VITE_API_URL ?? "/api";
+// Normalize VITE_API_URL so deployment misconfigurations don't break the app:
+// strip a trailing slash, and ensure the base ends in "/api" (all backend
+// routes live under /api). Both "https://host" and "https://host/api/" work.
+function resolveApiBase(): string {
+  const raw = (import.meta.env.VITE_API_URL ?? "/api").trim().replace(/\/+$/, "");
+  if (raw === "" ) return "/api";
+  return raw.endsWith("/api") ? raw : `${raw}/api`;
+}
+
+const API_BASE = resolveApiBase();
 
 async function request<T>(path: string, init?: RequestInit): Promise<T> {
   const res = await fetch(`${API_BASE}${path}`, {
