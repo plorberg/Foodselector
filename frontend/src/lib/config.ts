@@ -4,12 +4,6 @@ export type AppConfig = {
   defaultRepeatBlockDays: number;
   defaultRandomFactor: number;
   defaultSuggestionCount: number;
-  enabledAnalyzers: {
-    manual: boolean;
-    osm: boolean;
-    googlePlaces: boolean;
-    openai: boolean;
-  };
 };
 
 export type NamedEntity = { id: string; name: string };

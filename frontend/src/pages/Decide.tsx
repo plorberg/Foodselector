@@ -4,19 +4,19 @@ import { decideApi, type DecisionMode, type DecisionResult, type ScoredRestauran
 
 const MODES: { key: DecisionMode; label: string }[] = [
   { key: 'balanced', label: 'Ausgewogen' },
-  { key: 'safe', label: 'Sicher' },
-  { key: 'new', label: 'Neu' },
   { key: 'cheap', label: 'Günstig' },
-  { key: 'near', label: 'Nah' },
-  { key: 'group', label: 'Gruppe' },
-  { key: 'date', label: 'Date' },
-  { key: 'quick', label: 'Schnell' },
-  { key: 'cozy', label: 'Gemütlich' },
   { key: 'surprise', label: 'Überrasch mich' },
+]
+
+const CLASSIFICATIONS: { key: '' | 'NEW' | 'RECOMMENDATION'; label: string }[] = [
+  { key: '', label: 'Alle' },
+  { key: 'NEW', label: 'Neu' },
+  { key: 'RECOMMENDATION', label: 'Empfehlung' },
 ]
 
 export function Decide() {
   const [mode, setMode] = useState<DecisionMode>('balanced')
+  const [classification, setClassification] = useState<'' | 'NEW' | 'RECOMMENDATION'>('')
   const [preferFavorites, setPreferFavorites] = useState(false)
   const [maxPriceLevel, setMaxPriceLevel] = useState('')
   const [repeatBlockDays, setRepeatBlockDays] = useState('14')
@@ -32,6 +32,7 @@ export function Decide() {
     try {
       const res = await decideApi.decide({
         mode,
+        classification: classification || undefined,
         preferFavorites,
         maxPriceLevel: maxPriceLevel ? Number(maxPriceLevel) : undefined,
         repeatBlockDays: repeatBlockDays ? Number(repeatBlockDays) : undefined,
@@ -55,6 +56,27 @@ export function Decide() {
       <h1 className="mb-4 text-2xl font-semibold">Entscheide für mich</h1>
 
       <section className="mb-6 rounded-md border border-slate-200 bg-white p-4">
+        <div className="mb-2 text-xs font-medium uppercase tracking-wide text-slate-400">
+          Klassifizierung
+        </div>
+        <div className="mb-3 flex flex-wrap gap-2">
+          {CLASSIFICATIONS.map((c) => (
+            <button
+              key={c.key}
+              onClick={() => setClassification(c.key)}
+              className={`rounded-md border px-3 py-1.5 text-sm ${
+                classification === c.key
+                  ? 'border-slate-900 bg-slate-900 text-white'
+                  : 'border-slate-300 hover:bg-slate-100'
+              }`}
+            >
+              {c.label}
+            </button>
+          ))}
+        </div>
+        <div className="mb-2 text-xs font-medium uppercase tracking-wide text-slate-400">
+          Modus
+        </div>
         <div className="mb-3 flex flex-wrap gap-2">
           {MODES.map((m) => (
             <button
@@ -178,7 +200,12 @@ function Suggestion({ scored, highlight }: { scored: ScoredRestaurant; highlight
         {r.name}
       </Link>
       <div className="mt-0.5 flex flex-wrap gap-1.5 text-xs text-slate-500">
-        {r.city && <span>{r.city}</span>}
+        {r.address && <span>{r.address}</span>}
+        {r.classification && (
+          <span className="text-slate-600">
+            {r.classification === 'NEW' ? 'Neu' : 'Empfehlung'}
+          </span>
+        )}
         {r.categories.map((c) => (
           <span key={c} className="rounded bg-slate-100 px-1.5 py-0.5">
             {c}

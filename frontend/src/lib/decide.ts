@@ -1,17 +1,7 @@
 import { api } from "./api";
 import type { Restaurant } from "../types/restaurant";
 
-export type DecisionMode =
-  | "safe"
-  | "new"
-  | "cheap"
-  | "near"
-  | "group"
-  | "date"
-  | "quick"
-  | "cozy"
-  | "surprise"
-  | "balanced";
+export type DecisionMode = "balanced" | "cheap" | "surprise";
 
 export type ScoredRestaurant = {
   restaurant: Restaurant;
@@ -28,6 +18,7 @@ export type DecisionResult = {
 
 export type DecideRequest = {
   mode: DecisionMode;
+  classification?: "NEW" | "RECOMMENDATION";
   repeatBlockDays?: number;
   maxPriceLevel?: number;
   requiredTags?: string[];

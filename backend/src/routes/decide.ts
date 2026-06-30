@@ -5,21 +5,11 @@ import { prisma } from "../lib/prisma.js";
 
 export const decideRouter = Router();
 
-const MODES: [DecisionMode, ...DecisionMode[]] = [
-  "safe",
-  "new",
-  "cheap",
-  "near",
-  "group",
-  "date",
-  "quick",
-  "cozy",
-  "surprise",
-  "balanced",
-];
+const MODES: [DecisionMode, ...DecisionMode[]] = ["balanced", "cheap", "surprise"];
 
 const decideSchema = z.object({
   mode: z.enum(MODES).default("balanced"),
+  classification: z.enum(["NEW", "RECOMMENDATION"]).optional(),
   repeatBlockDays: z.number().int().min(0).optional(),
   maxPriceLevel: z.number().int().min(1).max(4).optional(),
   maxDistance: z.number().optional(),

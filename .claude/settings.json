@@ -4,7 +4,10 @@
       "Bash(node verify-mobile.mjs)",
       "Bash(rm -f /tmp/m-*.png)",
       "Bash(rm -rf /tmp/pwtest)",
-      "Bash(kill 233680)"
+      "Bash(kill 233680)",
+      "Bash(echo \"EXIT $?\")",
+      "Bash(node verify-refactor.mjs)",
+      "Bash(kill 43179)"
     ]
   }
 }

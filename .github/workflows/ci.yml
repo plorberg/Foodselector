@@ -1,0 +1,66 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  build-and-test:
+    name: Build & Test
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Generate Prisma client
+        run: npm run prisma:generate --workspace backend
+
+      - name: Typecheck & build backend
+        run: npm run build --workspace backend
+
+      - name: Test backend
+        run: npm test --workspace backend
+
+      - name: Typecheck & build frontend
+        run: npm run build --workspace frontend
+
+  deploy:
+    name: Deploy
+    needs: build-and-test
+    if: github.ref == 'refs/heads/main' && github.event_name == 'push'
+    runs-on: ubuntu-latest
+    steps:
+      # Both steps no-op cleanly until the corresponding secret is configured,
+      # so the pipeline is safe to merge before deploy hooks exist.
+      - name: Trigger backend deploy (Render)
+        env:
+          RENDER_DEPLOY_HOOK_URL: ${{ secrets.RENDER_DEPLOY_HOOK_URL }}
+        run: |
+          if [ -z "$RENDER_DEPLOY_HOOK_URL" ]; then
+            echo "RENDER_DEPLOY_HOOK_URL not set – skipping Render deploy."
+            exit 0
+          fi
+          echo "Triggering Render deploy…"
+          curl -fsSL -X POST "$RENDER_DEPLOY_HOOK_URL"
+
+      - name: Trigger frontend deploy (Vercel)
+        env:
+          VERCEL_DEPLOY_HOOK_URL: ${{ secrets.VERCEL_DEPLOY_HOOK_URL }}
+        run: |
+          if [ -z "$VERCEL_DEPLOY_HOOK_URL" ]; then
+            echo "VERCEL_DEPLOY_HOOK_URL not set – skipping Vercel deploy."
+            exit 0
+          fi
+          echo "Triggering Vercel deploy…"
+          curl -fsSL -X POST "$VERCEL_DEPLOY_HOOK_URL"

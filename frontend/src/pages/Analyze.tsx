@@ -9,15 +9,6 @@ import type {
   GoogleMapsParseResult,
 } from '../types/analysis'
 
-type AnalyzerKey = 'manual' | 'osm' | 'google-places' | 'openai'
-
-const ANALYZERS: { key: AnalyzerKey; label: string; hint: string }[] = [
-  { key: 'manual', label: 'Manual Paste', hint: 'Regelbasiert, ohne API-Key nutzbar.' },
-  { key: 'osm', label: 'OpenStreetMap', hint: 'Kostenlos, braucht Koordinaten oder Stadt.' },
-  { key: 'google-places', label: 'Google Places', hint: 'Nur falls API-Key serverseitig gesetzt.' },
-  { key: 'openai', label: 'OpenAI', hint: 'Nur falls API-Key serverseitig gesetzt.' },
-]
-
 // Confirmation state for each suggested field before it may be saved.
 type FieldRow = ExtractedFact & { accepted: boolean }
 
@@ -37,8 +28,6 @@ function confidenceColor(c: number): string {
 export function Analyze() {
   const navigate = useNavigate()
   const [input, setInput] = useState<AnalysisInput>({})
-  const [analyzer, setAnalyzer] = useState<AnalyzerKey>('manual')
-  const [pastedText, setPastedText] = useState('')
   const [googleMapsUrl, setGoogleMapsUrl] = useState('')
   const [mapsResult, setMapsResult] = useState<GoogleMapsParseResult | null>(null)
   const [result, setResult] = useState<AnalysisResult | null>(null)
@@ -75,13 +64,7 @@ export function Analyze() {
     setResult(null)
     setRows([])
     try {
-      const payload: AnalysisInput = { ...input, pastedText: pastedText || undefined }
-      let res: AnalysisResult
-      if (analyzer === 'manual') res = await analyzeApi.manual(payload)
-      else if (analyzer === 'osm') res = await analyzeApi.osm(payload)
-      else if (analyzer === 'google-places') res = await analyzeApi.googlePlaces(payload)
-      else res = await analyzeApi.openai(payload)
-
+      const res = await analyzeApi.googlePlaces(input)
       setResult(res)
       setRows(
         res.extractedFacts.map((f) => ({ ...f, accepted: f.confidence >= 0.75 }))
@@ -202,58 +185,26 @@ export function Analyze() {
           <input
             value={input.city ?? ''}
             onChange={(e) => set('city', e.target.value)}
-            placeholder="Stadt"
+            placeholder="Stadt (Suchhilfe)"
             className="input"
           />
           <input
             value={input.address ?? ''}
             onChange={(e) => set('address', e.target.value)}
             placeholder="Adresse"
-            className="input"
+            className="input sm:col-span-2"
           />
-          <input
-            value={input.websiteUrl ?? ''}
-            onChange={(e) => set('websiteUrl', e.target.value)}
-            placeholder="Website-URL"
-            className="input"
-          />
-        </div>
-        <textarea
-          value={pastedText}
-          onChange={(e) => setPastedText(e.target.value)}
-          placeholder="Manueller Text (Menü, Beschreibung, Reviews …) – für Manual Paste / OpenAI"
-          rows={5}
-          className="input mt-3"
-        />
-      </section>
-
-      <section className="mb-6 rounded-md border border-slate-200 bg-white p-4">
-        <h2 className="mb-3 text-sm font-semibold text-slate-700">Analyzer wählen</h2>
-        <div className="flex flex-wrap gap-2">
-          {ANALYZERS.map((a) => (
-            <button
-              key={a.key}
-              onClick={() => setAnalyzer(a.key)}
-              title={a.hint}
-              className={`rounded-md border px-3 py-1.5 text-sm ${
-                analyzer === a.key
-                  ? 'border-slate-900 bg-slate-900 text-white'
-                  : 'border-slate-300 hover:bg-slate-100'
-              }`}
-            >
-              {a.label}
-            </button>
-          ))}
         </div>
         <p className="mt-2 text-xs text-slate-500">
-          {ANALYZERS.find((a) => a.key === analyzer)?.hint}
+          Die Suche läuft über die Google Places API (serverseitig). Name, Stadt und Adresse bilden
+          die Suchanfrage; ein Google-Maps-Link liefert zusätzlich Name und Koordinaten.
         </p>
         <button
           onClick={runAnalysis}
           disabled={loading}
           className="mt-3 rounded-md bg-slate-900 px-4 py-2 text-sm font-medium text-white hover:bg-slate-700 disabled:opacity-50"
         >
-          {loading ? 'Analysiert…' : 'Analysieren'}
+          {loading ? 'Sucht…' : 'Mit Google Places suchen'}
         </button>
       </section>
 

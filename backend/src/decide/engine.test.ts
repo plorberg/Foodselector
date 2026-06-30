@@ -10,9 +10,7 @@ function makeRestaurant(overrides: Partial<Restaurant>): Restaurant {
     categories: [],
     subcategories: [],
     address: null,
-    city: null,
     district: null,
-    country: null,
     latitude: null,
     longitude: null,
     website: null,
@@ -34,6 +32,7 @@ function makeRestaurant(overrides: Partial<Restaurant>): Restaurant {
     personalRating: null,
     externalRating: null,
     notes: null,
+    classification: null,
     favorite: false,
     blacklisted: false,
     lastVisitedAt: null,
@@ -50,7 +49,7 @@ test("blacklisted restaurants are always excluded", () => {
     makeRestaurant({ id: "a", name: "Good", personalRating: 5 }),
     makeRestaurant({ id: "b", name: "Blacklisted", personalRating: 5, blacklisted: true }),
   ];
-  const result = decide(restaurants, { mode: "safe", seed: 1 });
+  const result = decide(restaurants, { mode: "balanced", seed: 1 });
   assert.equal(result.suggestion?.restaurant.id, "a");
   assert.equal(result.excludedCount, 1);
 });
@@ -62,29 +61,28 @@ test("recently visited restaurants are blocked by repeatBlockDays", () => {
     makeRestaurant({ id: "a", name: "Recent", personalRating: 5, lastVisitedAt: recent }),
     makeRestaurant({ id: "b", name: "Old", personalRating: 3 }),
   ];
-  const result = decide(restaurants, { mode: "safe", repeatBlockDays: 14, seed: 1 });
+  const result = decide(restaurants, { mode: "balanced", repeatBlockDays: 14, seed: 1 });
   assert.equal(result.suggestion?.restaurant.id, "b");
   assert.equal(result.excludedCount, 1);
 });
 
-test("safe mode favors high personal rating", () => {
+test("balanced mode favors high personal rating", () => {
   const restaurants = [
     makeRestaurant({ id: "low", personalRating: 1 }),
     makeRestaurant({ id: "high", personalRating: 5 }),
   ];
-  const result = decide(restaurants, { mode: "safe", seed: 42 });
+  const result = decide(restaurants, { mode: "balanced", seed: 42 });
   assert.equal(result.suggestion?.restaurant.id, "high");
 });
 
-test("new mode favors never-visited over recently-visited high rating", () => {
-  const longAgo = new Date();
-  longAgo.setDate(longAgo.getDate() - 40);
+test("classification filter only considers matching restaurants", () => {
   const restaurants = [
-    makeRestaurant({ id: "visited", personalRating: 5, lastVisitedAt: longAgo }),
-    makeRestaurant({ id: "fresh", personalRating: 2 }),
+    makeRestaurant({ id: "neu", classification: "NEW", personalRating: 1 }),
+    makeRestaurant({ id: "empf", classification: "RECOMMENDATION", personalRating: 5 }),
   ];
-  const result = decide(restaurants, { mode: "new", repeatBlockDays: 14, seed: 7 });
-  assert.equal(result.suggestion?.restaurant.id, "fresh");
+  const result = decide(restaurants, { mode: "balanced", classification: "NEW", seed: 7 });
+  assert.equal(result.suggestion?.restaurant.id, "neu");
+  assert.equal(result.excludedCount, 1);
 });
 
 test("cheap mode favors lower price level", () => {
@@ -112,14 +110,14 @@ test("maxPriceLevel hard filter excludes pricier restaurants", () => {
     makeRestaurant({ id: "ok", priceLevel: 2, personalRating: 3 }),
     makeRestaurant({ id: "toopricey", priceLevel: 4, personalRating: 5 }),
   ];
-  const result = decide(restaurants, { mode: "safe", maxPriceLevel: 2, seed: 1 });
+  const result = decide(restaurants, { mode: "balanced", maxPriceLevel: 2, seed: 1 });
   assert.equal(result.suggestion?.restaurant.id, "ok");
   assert.equal(result.excludedCount, 1);
 });
 
 test("returns null suggestion when all excluded", () => {
   const restaurants = [makeRestaurant({ id: "a", blacklisted: true })];
-  const result = decide(restaurants, { mode: "safe", seed: 1 });
+  const result = decide(restaurants, { mode: "balanced", seed: 1 });
   assert.equal(result.suggestion, null);
   assert.equal(result.excludedCount, 1);
 });

@@ -16,6 +16,11 @@ enum FieldStatus {
   DISCARDED
 }
 
+enum RestaurantClassification {
+  NEW
+  RECOMMENDATION
+}
+
 enum SourceType {
   WEBSITE
   SEARCH
@@ -41,9 +46,7 @@ model Restaurant {
   categories  String[]
   subcategories String[]
   address     String?
-  city        String?
   district    String?
-  country     String?
   latitude    Float?
   longitude   Float?
   website     String?
@@ -65,6 +68,7 @@ model Restaurant {
   personalRating Float?
   externalRating Float?
   notes       String?
+  classification RestaurantClassification?
   favorite    Boolean @default(false)
   blacklisted Boolean @default(false)
   lastVisitedAt DateTime?

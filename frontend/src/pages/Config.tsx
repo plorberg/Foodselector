@@ -96,27 +96,9 @@ export function Config() {
           </label>
         </div>
 
-        <h3 className="mt-4 mb-2 text-sm font-semibold text-slate-700">Aktive Analyzer</h3>
-        <div className="flex flex-wrap gap-4 text-sm text-slate-600">
-          {(['manual', 'osm', 'googlePlaces', 'openai'] as const).map((key) => (
-            <label key={key} className="flex items-center gap-1.5">
-              <input
-                type="checkbox"
-                checked={config.enabledAnalyzers[key]}
-                onChange={(e) =>
-                  setConfig({
-                    ...config,
-                    enabledAnalyzers: { ...config.enabledAnalyzers, [key]: e.target.checked },
-                  })
-                }
-              />
-              {key}
-            </label>
-          ))}
-        </div>
-        <p className="mt-2 text-xs text-slate-400">
-          Hinweis: Google Places und OpenAI funktionieren nur, wenn serverseitig ein API-Key gesetzt
-          ist. Diese Schalter steuern lediglich die UI-Auswahl.
+        <p className="mt-3 text-xs text-slate-400">
+          Restaurant-Analyse läuft über die Google Places API (serverseitig). Sie ist nur aktiv,
+          wenn <code>GOOGLE_PLACES_API_KEY</code> gesetzt ist.
         </p>
 
         <div className="mt-3 flex items-center gap-3">

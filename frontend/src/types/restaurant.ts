@@ -4,9 +4,7 @@ export type Restaurant = {
   categories: string[];
   subcategories: string[];
   address: string | null;
-  city: string | null;
   district: string | null;
-  country: string | null;
   latitude: number | null;
   longitude: number | null;
   website: string | null;
@@ -28,6 +26,7 @@ export type Restaurant = {
   personalRating: number | null;
   externalRating: number | null;
   notes: string | null;
+  classification: RestaurantClassification | null;
   favorite: boolean;
   blacklisted: boolean;
   lastVisitedAt: string | null;
@@ -36,6 +35,8 @@ export type Restaurant = {
   createdAt: string;
   updatedAt: string;
 };
+
+export type RestaurantClassification = "NEW" | "RECOMMENDATION";
 
 export type FieldStatus =
   | "RECOGNIZED"

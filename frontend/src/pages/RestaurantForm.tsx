@@ -8,9 +8,8 @@ type FormState = {
   categories: string
   subcategories: string
   address: string
-  city: string
   district: string
-  country: string
+  classification: '' | 'NEW' | 'RECOMMENDATION'
   website: string
   googleMapsLink: string
   phone: string
@@ -34,9 +33,8 @@ const EMPTY: FormState = {
   categories: '',
   subcategories: '',
   address: '',
-  city: '',
   district: '',
-  country: '',
+  classification: '',
   website: '',
   googleMapsLink: '',
   phone: '',
@@ -72,9 +70,8 @@ function fromRestaurant(r: Restaurant): FormState {
     categories: toCsv(r.categories),
     subcategories: toCsv(r.subcategories),
     address: r.address ?? '',
-    city: r.city ?? '',
     district: r.district ?? '',
-    country: r.country ?? '',
+    classification: r.classification ?? '',
     website: r.website ?? '',
     googleMapsLink: r.googleMapsLink ?? '',
     phone: r.phone ?? '',
@@ -100,9 +97,8 @@ function toInput(form: FormState) {
     categories: fromCsv(form.categories),
     subcategories: fromCsv(form.subcategories),
     address: form.address || null,
-    city: form.city || null,
     district: form.district || null,
-    country: form.country || null,
+    classification: form.classification || null,
     website: form.website || null,
     googleMapsLink: form.googleMapsLink || null,
     phone: form.phone || null,
@@ -179,28 +175,29 @@ export function RestaurantForm() {
             className="input"
           />
         </Field>
+        <Field label="Adresse (inkl. PLZ/Stadt)">
+          <input value={form.address} onChange={(e) => set('address', e.target.value)} className="input" />
+        </Field>
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-          <Field label="Stadt">
-            <input value={form.city} onChange={(e) => set('city', e.target.value)} className="input" />
-          </Field>
-          <Field label="Land">
+          <Field label="Stadtteil">
             <input
-              value={form.country}
-              onChange={(e) => set('country', e.target.value)}
+              value={form.district}
+              onChange={(e) => set('district', e.target.value)}
               className="input"
             />
           </Field>
+          <Field label="Klassifizierung">
+            <select
+              value={form.classification}
+              onChange={(e) => set('classification', e.target.value as FormState['classification'])}
+              className="input"
+            >
+              <option value="">–</option>
+              <option value="NEW">Neu</option>
+              <option value="RECOMMENDATION">Empfehlung</option>
+            </select>
+          </Field>
         </div>
-        <Field label="Adresse">
-          <input value={form.address} onChange={(e) => set('address', e.target.value)} className="input" />
-        </Field>
-        <Field label="Stadtteil">
-          <input
-            value={form.district}
-            onChange={(e) => set('district', e.target.value)}
-            className="input"
-          />
-        </Field>
         <Field label="Kategorien (kommagetrennt)">
           <input
             value={form.categories}

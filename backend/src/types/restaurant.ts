@@ -3,9 +3,7 @@ export type RestaurantData = {
   categories: string[];
   subcategories: string[];
   address: string | null;
-  city: string | null;
   district: string | null;
-  country: string | null;
   latitude: number | null;
   longitude: number | null;
   website: string | null;

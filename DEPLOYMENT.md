@@ -149,6 +149,41 @@ Render-Backend inkl. `/api` zeigt.
 
 ---
 
+## CI/CD – automatischer Deploy (GitHub Actions)
+
+Die Pipeline liegt in [.github/workflows/ci.yml](.github/workflows/ci.yml).
+
+**Ablauf bei jedem Push/PR auf `main`:**
+1. `build-and-test` (Quality-Gate): `npm ci` → Prisma-Client generieren →
+   Backend typecheck/build → Backend-Tests → Frontend typecheck/build.
+2. `deploy` (nur bei Push auf `main`, nur wenn Schritt 1 grün ist): triggert
+   Render- und Vercel-Deploy über Deploy-Hooks.
+
+**Vorteil gegenüber dem nativen Auto-Deploy von Render/Vercel:** Es wird nur
+deployt, wenn Tests/Builds erfolgreich sind.
+
+### Einzurichtende GitHub-Secrets
+(Repo → Settings → Secrets and variables → Actions → New repository secret)
+
+| Secret                    | Woher                                                         |
+|---------------------------|--------------------------------------------------------------|
+| `RENDER_DEPLOY_HOOK_URL`  | Render → Service → Settings → **Deploy Hook** (URL kopieren) |
+| `VERCEL_DEPLOY_HOOK_URL`  | Vercel → Project → Settings → Git → **Deploy Hooks** (Hook für `main` erstellen) |
+
+Solange ein Secret fehlt, überspringt der jeweilige Deploy-Schritt sauber
+(kein Fehler) – die Pipeline kann also schon vor dem Einrichten gemerged werden.
+
+### Wichtig: natives Auto-Deploy abschalten
+Damit nicht doppelt deployt wird, das automatische Git-Deploy bei den Hostern
+deaktivieren, sobald die Pipeline aktiv ist:
+- **Render:** Service → Settings → Build & Deploy → **Auto-Deploy = No**.
+- **Vercel:** Project → Settings → Git → **Ignored Build Step** bzw. Auto-Deploy
+  für `main` deaktivieren (oder Production-Deploys nur über den Hook zulassen).
+
+Migrationen laufen weiterhin über Renders Pre-Deploy-Command
+(`npx prisma migrate deploy`, siehe Teil 2) – die CI selbst braucht **keinen**
+DB-Zugriff.
+
 ## Troubleshooting
 
 ### CORS-Fehler: „ACAO-Header '…vercel.app/' not equal to supplied origin"

@@ -3,9 +3,9 @@ import type { Restaurant, RestaurantInput } from "../types/restaurant";
 
 export type RestaurantFilters = {
   search?: string;
-  city?: string;
   category?: string;
   tag?: string;
+  classification?: "NEW" | "RECOMMENDATION";
   favorite?: boolean;
   blacklisted?: boolean;
 };

@@ -18,11 +18,16 @@ restaurantsRouter.get("/", async (req, res, next) => {
     const restaurants = await prisma.restaurant.findMany({
       where: {
         ...(query.search
-          ? { name: { contains: query.search, mode: "insensitive" } }
+          ? {
+              OR: [
+                { name: { contains: query.search, mode: "insensitive" } },
+                { address: { contains: query.search, mode: "insensitive" } },
+              ],
+            }
           : {}),
-        ...(query.city ? { city: { equals: query.city, mode: "insensitive" } } : {}),
         ...(query.category ? { categories: { has: query.category } } : {}),
         ...(query.tag ? { tags: { has: query.tag } } : {}),
+        ...(query.classification ? { classification: query.classification } : {}),
         ...(query.favorite !== undefined ? { favorite: query.favorite } : {}),
         ...(query.blacklisted !== undefined ? { blacklisted: query.blacklisted } : {}),
       },

@@ -12,12 +12,6 @@ const DEFAULT_CONFIG = {
   defaultRepeatBlockDays: 14,
   defaultRandomFactor: 0.15,
   defaultSuggestionCount: 3,
-  enabledAnalyzers: {
-    manual: true,
-    osm: true,
-    googlePlaces: false,
-    openai: false,
-  },
 };
 
 // --- App settings (key/value) ---

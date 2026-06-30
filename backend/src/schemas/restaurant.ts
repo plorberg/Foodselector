@@ -5,9 +5,7 @@ export const restaurantInputSchema = z.object({
   categories: z.array(z.string()).optional(),
   subcategories: z.array(z.string()).optional(),
   address: z.string().optional().nullable(),
-  city: z.string().optional().nullable(),
   district: z.string().optional().nullable(),
-  country: z.string().optional().nullable(),
   latitude: z.number().optional().nullable(),
   longitude: z.number().optional().nullable(),
   website: z.string().optional().nullable(),
@@ -29,6 +27,7 @@ export const restaurantInputSchema = z.object({
   personalRating: z.number().min(0).max(5).optional().nullable(),
   externalRating: z.number().min(0).max(5).optional().nullable(),
   notes: z.string().optional().nullable(),
+  classification: z.enum(["NEW", "RECOMMENDATION"]).optional().nullable(),
   favorite: z.boolean().optional(),
   blacklisted: z.boolean().optional(),
   lastVisitedAt: z.coerce.date().optional().nullable(),
@@ -40,9 +39,9 @@ export const restaurantUpdateSchema = restaurantInputSchema.partial();
 
 export const restaurantQuerySchema = z.object({
   search: z.string().optional(),
-  city: z.string().optional(),
   category: z.string().optional(),
   tag: z.string().optional(),
+  classification: z.enum(["NEW", "RECOMMENDATION"]).optional(),
   favorite: z.coerce.boolean().optional(),
   blacklisted: z.coerce.boolean().optional(),
 });

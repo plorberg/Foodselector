@@ -1,19 +1,10 @@
-import type { Restaurant } from "@prisma/client";
+import type { Restaurant, RestaurantClassification } from "@prisma/client";
 
-export type DecisionMode =
-  | "safe"
-  | "new"
-  | "cheap"
-  | "near"
-  | "group"
-  | "date"
-  | "quick"
-  | "cozy"
-  | "surprise"
-  | "balanced";
+export type DecisionMode = "balanced" | "cheap" | "surprise";
 
 export type DecisionRequest = {
   mode: DecisionMode;
+  classification?: RestaurantClassification;
   repeatBlockDays?: number;
   maxPriceLevel?: number;
   maxDistance?: number;
@@ -37,16 +28,9 @@ export type DecisionResult = {
 };
 
 // Per-mode weight profiles. Each weight scales a normalized [0,1] signal.
+// Modes are kept deliberately small; the "Neu / Empfehlung" distinction is
+// expressed via the classification filter, not via separate modes.
 const MODE_WEIGHTS: Record<DecisionMode, Record<string, number>> = {
-  safe: { personalRating: 3, favorite: 2, visited: 1, novelty: 0 },
-  new: { novelty: 3, externalRating: 1, personalRating: 0.5 },
-  cheap: { cheapness: 3, personalRating: 1 },
-  near: { proximity: 3, personalRating: 1 },
-  group: { groupSuitable: 3, personalRating: 1 },
-  date: { dateSuitable: 3, personalRating: 1, externalRating: 1 },
-  quick: { quick: 3, proximity: 1 },
-  cozy: { cozy: 3, personalRating: 1 },
-  surprise: { random: 3, novelty: 1 },
   balanced: {
     personalRating: 1.5,
     externalRating: 1,
@@ -55,6 +39,8 @@ const MODE_WEIGHTS: Record<DecisionMode, Record<string, number>> = {
     cheapness: 0.5,
     favorite: 0.5,
   },
+  cheap: { cheapness: 3, personalRating: 1 },
+  surprise: { random: 3, novelty: 1 },
 };
 
 const RANDOM_FACTOR = 0.15;
@@ -76,14 +62,6 @@ function daysSince(date: Date | null): number | null {
   return (Date.now() - new Date(date).getTime()) / (1000 * 60 * 60 * 24);
 }
 
-function hasAnyTag(restaurant: Restaurant, candidates: string[]): boolean {
-  const tags = restaurant.tags.map((t) => t.toLowerCase());
-  const suitability = restaurant.suitability.map((s) => s.toLowerCase());
-  const ambience = restaurant.ambience.map((a) => a.toLowerCase());
-  const all = [...tags, ...suitability, ...ambience];
-  return candidates.some((c) => all.includes(c));
-}
-
 type Signals = Record<string, number>;
 
 function computeSignals(restaurant: Restaurant, rng: () => number): Signals {
@@ -92,16 +70,11 @@ function computeSignals(restaurant: Restaurant, rng: () => number): Signals {
     personalRating: restaurant.personalRating != null ? restaurant.personalRating / 5 : 0,
     externalRating: restaurant.externalRating != null ? restaurant.externalRating / 5 : 0,
     favorite: restaurant.favorite ? 1 : 0,
-    visited: lastVisitDays != null ? 1 : 0,
     // Higher for never-visited / long-ago-visited restaurants.
     novelty: lastVisitDays == null ? 1 : Math.min(1, lastVisitDays / 60),
     cheapness: restaurant.priceLevel != null ? (5 - restaurant.priceLevel) / 4 : 0.5,
     proximity:
       restaurant.distance != null ? Math.max(0, 1 - restaurant.distance / 10000) : 0.5,
-    groupSuitable: hasAnyTag(restaurant, ["gruppe", "für gruppen", "groups"]) ? 1 : 0,
-    dateSuitable: hasAnyTag(restaurant, ["date", "für date", "romantisch"]) ? 1 : 0,
-    quick: hasAnyTag(restaurant, ["schnell", "quick", "fast", "imbiss"]) ? 1 : 0,
-    cozy: hasAnyTag(restaurant, ["gemütlich", "cozy", "gemuetlich"]) ? 1 : 0,
     random: rng(),
   };
 }
@@ -150,6 +123,10 @@ export function decide(
   const eligible = restaurants.filter((r) => {
     // Hard filters (priority 1: blacklist always excludes).
     if (r.blacklisted) {
+      excludedCount++;
+      return false;
+    }
+    if (request.classification && r.classification !== request.classification) {
       excludedCount++;
       return false;
     }

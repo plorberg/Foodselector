@@ -10,6 +10,7 @@ export function Restaurants() {
   const [search, setSearch] = useState('')
   const [favoriteOnly, setFavoriteOnly] = useState(false)
   const [hideBlacklisted, setHideBlacklisted] = useState(true)
+  const [classification, setClassification] = useState<'' | 'NEW' | 'RECOMMENDATION'>('')
 
   async function load() {
     setLoading(true)
@@ -18,6 +19,7 @@ export function Restaurants() {
       const data = await restaurantsApi.list({
         search: search || undefined,
         favorite: favoriteOnly ? true : undefined,
+        classification: classification || undefined,
       })
       setRestaurants(hideBlacklisted ? data.filter((r) => !r.blacklisted) : data)
     } catch (err) {
@@ -30,7 +32,7 @@ export function Restaurants() {
   useEffect(() => {
     load()
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [favoriteOnly, hideBlacklisted])
+  }, [favoriteOnly, hideBlacklisted, classification])
 
   async function toggleFavorite(r: Restaurant) {
     const updated = await restaurantsApi.setFavorite(r.id, !r.favorite)
@@ -104,6 +106,15 @@ export function Restaurants() {
           />
           Blacklist ausblenden
         </label>
+        <select
+          value={classification}
+          onChange={(e) => setClassification(e.target.value as '' | 'NEW' | 'RECOMMENDATION')}
+          className="rounded-md border border-slate-300 px-2 py-1.5 text-sm text-slate-600"
+        >
+          <option value="">Alle Klassifizierungen</option>
+          <option value="NEW">Neu</option>
+          <option value="RECOMMENDATION">Empfehlung</option>
+        </select>
       </form>
 
       {error && <p className="mb-4 text-sm text-red-600">{error}</p>}
@@ -122,8 +133,19 @@ export function Restaurants() {
                 <Link to={`/restaurants/${r.id}`} className="font-medium text-slate-900 hover:underline">
                   {r.name}
                 </Link>
+                {r.address && <div className="truncate text-xs text-slate-500">{r.address}</div>}
                 <div className="mt-0.5 flex flex-wrap gap-1 text-xs text-slate-500">
-                  {r.city && <span>{r.city}</span>}
+                  {r.classification && (
+                    <span
+                      className={
+                        r.classification === 'NEW'
+                          ? 'rounded bg-blue-100 px-1.5 py-0.5 text-blue-700'
+                          : 'rounded bg-green-100 px-1.5 py-0.5 text-green-700'
+                      }
+                    >
+                      {r.classification === 'NEW' ? 'Neu' : 'Empfehlung'}
+                    </span>
+                  )}
                   {r.categories.map((c) => (
                     <span key={c} className="rounded bg-slate-100 px-1.5 py-0.5">
                       {c}
