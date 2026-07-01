@@ -14,11 +14,13 @@ const DEFAULT_CONFIG = {
   defaultSuggestionCount: 3,
 };
 
-// --- App settings (key/value) ---
+// All config is scoped to the active workspace (req.workspaceId via withWorkspace).
 
-configRouter.get("/config", async (_req, res, next) => {
+configRouter.get("/config", async (req, res, next) => {
   try {
-    const row = await prisma.appSetting.findUnique({ where: { key: SETTINGS_KEY } });
+    const row = await prisma.appSetting.findUnique({
+      where: { workspaceId_key: { workspaceId: req.workspaceId!, key: SETTINGS_KEY } },
+    });
     res.json(row?.value ?? DEFAULT_CONFIG);
   } catch (err) {
     next(err);
@@ -29,9 +31,9 @@ configRouter.put("/config", async (req, res, next) => {
   try {
     const value = req.body ?? {};
     const row = await prisma.appSetting.upsert({
-      where: { key: SETTINGS_KEY },
+      where: { workspaceId_key: { workspaceId: req.workspaceId!, key: SETTINGS_KEY } },
       update: { value },
-      create: { key: SETTINGS_KEY, value },
+      create: { workspaceId: req.workspaceId!, key: SETTINGS_KEY, value },
     });
     res.json(row.value);
   } catch (err) {
@@ -43,9 +45,14 @@ configRouter.put("/config", async (req, res, next) => {
 
 const nameSchema = z.object({ name: z.string().min(1) });
 
-configRouter.get("/categories", async (_req, res, next) => {
+configRouter.get("/categories", async (req, res, next) => {
   try {
-    res.json(await prisma.category.findMany({ orderBy: { name: "asc" } }));
+    res.json(
+      await prisma.category.findMany({
+        where: { workspaceId: req.workspaceId },
+        orderBy: { name: "asc" },
+      })
+    );
   } catch (err) {
     next(err);
   }
@@ -54,7 +61,9 @@ configRouter.get("/categories", async (_req, res, next) => {
 configRouter.post("/categories", async (req, res, next) => {
   try {
     const { name } = nameSchema.parse(req.body);
-    const category = await prisma.category.create({ data: { name } });
+    const category = await prisma.category.create({
+      data: { name, workspaceId: req.workspaceId! },
+    });
     res.status(201).json(category);
   } catch (err) {
     next(err);
@@ -63,18 +72,26 @@ configRouter.post("/categories", async (req, res, next) => {
 
 configRouter.delete("/categories/:id", async (req, res, next) => {
   try {
-    await prisma.category.delete({ where: { id: req.params.id } });
+    const deleted = await prisma.category.deleteMany({
+      where: { id: req.params.id, workspaceId: req.workspaceId },
+    });
+    if (deleted.count === 0) throw new ApiError(404, "category_not_found");
     res.status(204).send();
-  } catch {
-    next(new ApiError(404, "category_not_found"));
+  } catch (err) {
+    next(err);
   }
 });
 
 // --- Tags ---
 
-configRouter.get("/tags", async (_req, res, next) => {
+configRouter.get("/tags", async (req, res, next) => {
   try {
-    res.json(await prisma.tag.findMany({ orderBy: { name: "asc" } }));
+    res.json(
+      await prisma.tag.findMany({
+        where: { workspaceId: req.workspaceId },
+        orderBy: { name: "asc" },
+      })
+    );
   } catch (err) {
     next(err);
   }
@@ -83,7 +100,7 @@ configRouter.get("/tags", async (_req, res, next) => {
 configRouter.post("/tags", async (req, res, next) => {
   try {
     const { name } = nameSchema.parse(req.body);
-    const tag = await prisma.tag.create({ data: { name } });
+    const tag = await prisma.tag.create({ data: { name, workspaceId: req.workspaceId! } });
     res.status(201).json(tag);
   } catch (err) {
     next(err);
@@ -92,10 +109,13 @@ configRouter.post("/tags", async (req, res, next) => {
 
 configRouter.delete("/tags/:id", async (req, res, next) => {
   try {
-    await prisma.tag.delete({ where: { id: req.params.id } });
+    const deleted = await prisma.tag.deleteMany({
+      where: { id: req.params.id, workspaceId: req.workspaceId },
+    });
+    if (deleted.count === 0) throw new ApiError(404, "tag_not_found");
     res.status(204).send();
-  } catch {
-    next(new ApiError(404, "tag_not_found"));
+  } catch (err) {
+    next(err);
   }
 });
 
@@ -112,9 +132,14 @@ const profileSchema = z.object({
   isDefault: z.boolean().default(false),
 });
 
-configRouter.get("/decision-profiles", async (_req, res, next) => {
+configRouter.get("/decision-profiles", async (req, res, next) => {
   try {
-    res.json(await prisma.decisionProfile.findMany({ orderBy: { name: "asc" } }));
+    res.json(
+      await prisma.decisionProfile.findMany({
+        where: { workspaceId: req.workspaceId },
+        orderBy: { name: "asc" },
+      })
+    );
   } catch (err) {
     next(err);
   }
@@ -124,7 +149,7 @@ configRouter.post("/decision-profiles", async (req, res, next) => {
   try {
     const data = profileSchema.parse(req.body);
     const profile = await prisma.decisionProfile.create({
-      data: data as Prisma.DecisionProfileCreateInput,
+      data: { ...data, workspaceId: req.workspaceId! } as Prisma.DecisionProfileUncheckedCreateInput,
     });
     res.status(201).json(profile);
   } catch (err) {
@@ -135,13 +160,12 @@ configRouter.post("/decision-profiles", async (req, res, next) => {
 configRouter.put("/decision-profiles/:id", async (req, res, next) => {
   try {
     const data = profileSchema.partial().parse(req.body);
-    const profile = await prisma.decisionProfile
-      .update({
-        where: { id: req.params.id },
-        data: data as Prisma.DecisionProfileUpdateInput,
-      })
-      .catch(() => null);
-    if (!profile) throw new ApiError(404, "profile_not_found");
+    const updated = await prisma.decisionProfile.updateMany({
+      where: { id: req.params.id, workspaceId: req.workspaceId },
+      data: data as Prisma.DecisionProfileUpdateManyMutationInput,
+    });
+    if (updated.count === 0) throw new ApiError(404, "profile_not_found");
+    const profile = await prisma.decisionProfile.findUnique({ where: { id: req.params.id } });
     res.json(profile);
   } catch (err) {
     next(err);
@@ -150,9 +174,12 @@ configRouter.put("/decision-profiles/:id", async (req, res, next) => {
 
 configRouter.delete("/decision-profiles/:id", async (req, res, next) => {
   try {
-    await prisma.decisionProfile.delete({ where: { id: req.params.id } });
+    const deleted = await prisma.decisionProfile.deleteMany({
+      where: { id: req.params.id, workspaceId: req.workspaceId },
+    });
+    if (deleted.count === 0) throw new ApiError(404, "profile_not_found");
     res.status(204).send();
-  } catch {
-    next(new ApiError(404, "profile_not_found"));
+  } catch (err) {
+    next(err);
   }
 });

@@ -1,3 +1,5 @@
+import { getActiveWorkspace, getToken, handleUnauthorized } from "./auth";
+
 // Normalize VITE_API_URL so deployment misconfigurations don't break the app:
 // strip a trailing slash, and ensure the base ends in "/api" (all backend
 // routes live under /api). Both "https://host" and "https://host/api/" work.
@@ -10,10 +12,22 @@ function resolveApiBase(): string {
 const API_BASE = resolveApiBase();
 
 async function request<T>(path: string, init?: RequestInit): Promise<T> {
+  const token = getToken();
+  const workspaceId = getActiveWorkspace();
   const res = await fetch(`${API_BASE}${path}`, {
-    headers: { "Content-Type": "application/json" },
     ...init,
+    headers: {
+      "Content-Type": "application/json",
+      ...(token ? { Authorization: `Bearer ${token}` } : {}),
+      ...(workspaceId ? { "X-Workspace-Id": workspaceId } : {}),
+      ...init?.headers,
+    },
   });
+
+  if (res.status === 401) {
+    handleUnauthorized();
+    throw new Error("unauthorized");
+  }
 
   if (!res.ok) {
     const body = await res.json().catch(() => ({}));

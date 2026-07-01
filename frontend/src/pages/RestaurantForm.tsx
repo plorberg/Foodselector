@@ -147,10 +147,11 @@ export function RestaurantForm() {
     try {
       if (isEdit && id) {
         await restaurantsApi.update(id, toInput(form))
+        navigate(`/restaurants/${id}`)
       } else {
         await restaurantsApi.create(toInput(form))
+        navigate('/restaurants')
       }
-      navigate('/restaurants')
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Speichern fehlgeschlagen.')
     } finally {

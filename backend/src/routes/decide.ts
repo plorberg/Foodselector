@@ -22,7 +22,9 @@ const decideSchema = z.object({
 decideRouter.post("/decide", async (req, res, next) => {
   try {
     const request = decideSchema.parse(req.body);
-    const restaurants = await prisma.restaurant.findMany();
+    const restaurants = await prisma.restaurant.findMany({
+      where: { workspaceId: req.workspaceId },
+    });
     const result = decide(restaurants, request);
 
     if (result.suggestion) {

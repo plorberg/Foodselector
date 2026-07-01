@@ -49,3 +49,24 @@ export type FieldStatus =
 export type RestaurantInput = Partial<
   Omit<Restaurant, "id" | "createdAt" | "updatedAt">
 > & { name: string };
+
+export type RestaurantVisit = {
+  id: string;
+  visitedAt: string;
+  rating: number | null;
+  notes: string | null;
+};
+
+export type RestaurantSource = {
+  id: string;
+  type: string;
+  url: string | null;
+  title: string | null;
+  reliability: string;
+  retrievedAt: string;
+};
+
+export type RestaurantWithRelations = Restaurant & {
+  visits: RestaurantVisit[];
+  sources: RestaurantSource[];
+};

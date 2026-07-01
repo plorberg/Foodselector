@@ -11,7 +11,16 @@
       "Bash(git check-ignore *)",
       "Bash(curl -s -m 90 -w \"\\\\nHTTP %{http_code}, %{time_total}s\\\\n\" https://foodselector.onrender.com/api/restaurants)",
       "Bash(curl -s -m 30 https://foodselector.onrender.com/health)",
-      "Bash(gh run *)"
+      "Bash(gh run *)",
+      "Bash(node -e ' *)",
+      "Bash(node -e \"try{require.resolve\\('bcryptjs'\\);console.log\\('bcryptjs: da'\\)}catch{console.log\\('bcryptjs: fehlt'\\)}; try{require.resolve\\('jsonwebtoken'\\);console.log\\('jsonwebtoken: da'\\)}catch{console.log\\('jsonwebtoken: fehlt'\\)}\")",
+      "Bash(npm install *)",
+      "Bash(echo \"TS EXIT $?\")",
+      "Bash(rm -f /tmp/a-*.png)",
+      "Bash(npm uninstall *)",
+      "Bash(node verify-tenancy.mjs)",
+      "Bash(rm -f /tmp/t-*.png)",
+      "Bash(kill 77024)"
     ]
   }
 }

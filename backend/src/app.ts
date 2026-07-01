@@ -1,12 +1,17 @@
 import cors from "cors";
 import express from "express";
 import { errorHandler } from "./middleware/errorHandler.js";
+import { requireAuth } from "./middleware/requireAuth.js";
+import { withWorkspace } from "./middleware/withWorkspace.js";
 import { analyzeRouter } from "./routes/analyze.js";
+import { authRouter } from "./routes/auth.js";
 import { configRouter } from "./routes/config.js";
 import { decideRouter } from "./routes/decide.js";
 import { googleMapsRouter } from "./routes/googleMaps.js";
 import { importExportRouter } from "./routes/importExport.js";
+import { invitationsRouter } from "./routes/invitations.js";
 import { restaurantsRouter } from "./routes/restaurants.js";
+import { workspacesRouter } from "./routes/workspaces.js";
 
 // Allowed origins from CORS_ORIGIN (comma-separated), normalized so a stray
 // trailing slash doesn't cause a mismatch with the browser-supplied origin
@@ -40,12 +45,22 @@ export function createApp() {
     res.json({ status: "ok" });
   });
 
-  app.use("/api/restaurants", restaurantsRouter);
-  app.use("/api/parse", googleMapsRouter);
-  app.use("/api/analyze", analyzeRouter);
-  app.use("/api", decideRouter);
-  app.use("/api", configRouter);
-  app.use("/api", importExportRouter);
+  // Public auth endpoints.
+  app.use("/api/auth", authRouter);
+
+  // Auth-only (not tied to a single workspace): manage workspaces + invitations.
+  app.use("/api/workspaces", requireAuth, workspacesRouter);
+  app.use("/api/invitations", requireAuth, invitationsRouter);
+
+  // Analyzers touch no workspace data (external APIs only) → auth is enough.
+  app.use("/api/parse", requireAuth, googleMapsRouter);
+  app.use("/api/analyze", requireAuth, analyzeRouter);
+
+  // Workspace-scoped data (requires login + membership of X-Workspace-Id).
+  app.use("/api/restaurants", requireAuth, withWorkspace, restaurantsRouter);
+  app.use("/api", requireAuth, withWorkspace, decideRouter);
+  app.use("/api", requireAuth, withWorkspace, configRouter);
+  app.use("/api", requireAuth, withWorkspace, importExportRouter);
 
   app.use(errorHandler);
 

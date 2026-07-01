@@ -5,18 +5,31 @@ const prisma = new PrismaClient();
 // Fictional example data for local development/demo only — not researched
 // facts about real restaurants. Real entries must go through an analyzer
 // and user confirmation per the data-quality rules in STEP.md.
+const DEMO_WORKSPACE_ID = "00000000-0000-0000-0000-0000000000de";
+
 async function main() {
+  const workspace = await prisma.workspace.upsert({
+    where: { id: DEMO_WORKSPACE_ID },
+    update: {},
+    create: { id: DEMO_WORKSPACE_ID, name: "Demo" },
+  });
+  const workspaceId = workspace.id;
+
   await prisma.category.createMany({
-    data: [{ name: "Italienisch" }, { name: "Asiatisch" }, { name: "Burger" }],
+    data: [
+      { name: "Italienisch", workspaceId },
+      { name: "Asiatisch", workspaceId },
+      { name: "Burger", workspaceId },
+    ],
     skipDuplicates: true,
   });
 
   await prisma.tag.createMany({
     data: [
-      { name: "vegetarisch" },
-      { name: "vegan" },
-      { name: "lieferung" },
-      { name: "gemuetlich" },
+      { name: "vegetarisch", workspaceId },
+      { name: "vegan", workspaceId },
+      { name: "lieferung", workspaceId },
+      { name: "gemuetlich", workspaceId },
     ],
     skipDuplicates: true,
   });
@@ -38,9 +51,10 @@ async function main() {
   });
 
   await prisma.decisionProfile.upsert({
-    where: { name: "Ausgewogen" },
+    where: { workspaceId_name: { workspaceId, name: "Ausgewogen" } },
     update: {},
     create: {
+      workspaceId,
       name: "Ausgewogen",
       description: "Standardprofil ohne starke Gewichtung in eine Richtung.",
       filters: {},
@@ -99,13 +113,14 @@ async function main() {
     );
 
     const existing = await prisma.restaurant.findFirst({
-      where: { name: restaurant.name },
+      where: { name: restaurant.name, workspaceId },
     });
     if (existing) continue;
 
     await prisma.restaurant.create({
       data: {
         ...restaurant,
+        workspaceId,
         fieldStatuses,
         confidenceByField,
         sources: {

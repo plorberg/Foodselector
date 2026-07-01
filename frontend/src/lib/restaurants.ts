@@ -1,5 +1,9 @@
 import { api } from "./api";
-import type { Restaurant, RestaurantInput } from "../types/restaurant";
+import type {
+  Restaurant,
+  RestaurantInput,
+  RestaurantWithRelations,
+} from "../types/restaurant";
 
 export type RestaurantFilters = {
   search?: string;
@@ -22,7 +26,7 @@ function toQueryString(filters: RestaurantFilters): string {
 export const restaurantsApi = {
   list: (filters: RestaurantFilters = {}) =>
     api.get<Restaurant[]>(`/restaurants${toQueryString(filters)}`),
-  get: (id: string) => api.get<Restaurant>(`/restaurants/${id}`),
+  get: (id: string) => api.get<RestaurantWithRelations>(`/restaurants/${id}`),
   create: (input: RestaurantInput) => api.post<Restaurant>("/restaurants", input),
   update: (id: string, input: Partial<RestaurantInput>) =>
     api.put<Restaurant>(`/restaurants/${id}`, input),

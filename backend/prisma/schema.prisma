@@ -21,6 +21,74 @@ enum RestaurantClassification {
   RECOMMENDATION
 }
 
+enum MembershipRole {
+  OWNER
+  MEMBER
+}
+
+enum InvitationStatus {
+  PENDING
+  ACCEPTED
+  REVOKED
+}
+
+model User {
+  id        String   @id @default(uuid())
+  email     String   @unique
+  name      String?
+  googleId  String?  @unique
+  createdAt DateTime @default(now())
+
+  memberships Membership[]
+
+  @@map("users")
+}
+
+model Workspace {
+  id        String   @id @default(uuid())
+  name      String
+  createdAt DateTime @default(now())
+
+  memberships      Membership[]
+  invitations      Invitation[]
+  restaurants      Restaurant[]
+  categories       Category[]
+  tags             Tag[]
+  decisionProfiles DecisionProfile[]
+  appSettings      AppSetting[]
+
+  @@map("workspaces")
+}
+
+model Membership {
+  id          String         @id @default(uuid())
+  userId      String
+  workspaceId String
+  role        MembershipRole @default(MEMBER)
+  createdAt   DateTime       @default(now())
+
+  user      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  workspace Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, workspaceId])
+  @@map("memberships")
+}
+
+model Invitation {
+  id              String           @id @default(uuid())
+  workspaceId     String
+  email           String
+  role            MembershipRole   @default(MEMBER)
+  token           String           @unique @default(uuid())
+  status          InvitationStatus @default(PENDING)
+  invitedByUserId String?
+  createdAt       DateTime         @default(now())
+
+  workspace Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+
+  @@map("invitations")
+}
+
 enum SourceType {
   WEBSITE
   SEARCH
@@ -42,6 +110,8 @@ enum SourceReliability {
 
 model Restaurant {
   id          String  @id @default(uuid())
+  workspaceId String
+  workspace   Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
   name        String
   categories  String[]
   subcategories String[]
@@ -82,6 +152,7 @@ model Restaurant {
   visits          RestaurantVisit[]
   suggestions     SuggestionHistory[]
 
+  @@unique([workspaceId, googlePlaceId])
   @@map("restaurants")
 }
 
@@ -132,7 +203,9 @@ model RestaurantVisit {
 
 model DecisionProfile {
   id          String  @id @default(uuid())
-  name        String  @unique
+  workspaceId String
+  workspace   Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  name        String
   description String?
   filters     Json
   weights     Json
@@ -146,20 +219,27 @@ model DecisionProfile {
 
   suggestions SuggestionHistory[]
 
+  @@unique([workspaceId, name])
   @@map("decision_profiles")
 }
 
 model Category {
   id   String @id @default(uuid())
-  name String @unique
+  workspaceId String
+  workspace   Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  name String
 
+  @@unique([workspaceId, name])
   @@map("categories")
 }
 
 model Tag {
   id   String @id @default(uuid())
-  name String @unique
+  workspaceId String
+  workspace   Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  name String
 
+  @@unique([workspaceId, name])
   @@map("tags")
 }
 
@@ -174,9 +254,12 @@ model Classification {
 }
 
 model AppSetting {
-  key   String @id
+  workspaceId String
+  workspace   Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  key   String
   value Json
 
+  @@id([workspaceId, key])
   @@map("app_settings")
 }
 

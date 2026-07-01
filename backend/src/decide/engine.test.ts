@@ -6,6 +6,7 @@ import { decide } from "./engine.js";
 function makeRestaurant(overrides: Partial<Restaurant>): Restaurant {
   return {
     id: overrides.id ?? Math.random().toString(36).slice(2),
+    workspaceId: overrides.workspaceId ?? "ws-test",
     name: overrides.name ?? "Test",
     categories: [],
     subcategories: [],

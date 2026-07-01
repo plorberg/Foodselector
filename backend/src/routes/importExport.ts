@@ -7,15 +7,17 @@ export const importExportRouter = Router();
 
 // Exports restaurants (with sources/facts/visits), categories, tags and
 // decision profiles as a single JSON document.
-importExportRouter.get("/export", async (_req, res, next) => {
+importExportRouter.get("/export", async (req, res, next) => {
   try {
+    const where = { workspaceId: req.workspaceId };
     const [restaurants, categories, tags, decisionProfiles] = await Promise.all([
       prisma.restaurant.findMany({
+        where,
         include: { sources: true, extractedFacts: true, visits: true },
       }),
-      prisma.category.findMany(),
-      prisma.tag.findMany(),
-      prisma.decisionProfile.findMany(),
+      prisma.category.findMany({ where }),
+      prisma.tag.findMany({ where }),
+      prisma.decisionProfile.findMany({ where }),
     ]);
 
     res.json({
@@ -44,15 +46,17 @@ const importSchema = z.object({
 importExportRouter.post("/import", async (req, res, next) => {
   try {
     const data = importSchema.parse(req.body);
+    const workspaceId = req.workspaceId!;
 
     if (data.mode === "replace") {
-      await prisma.restaurant.deleteMany();
+      await prisma.restaurant.deleteMany({ where: { workspaceId } });
     }
 
     let importedRestaurants = 0;
     for (const raw of data.restaurants ?? []) {
       const {
         id: _id,
+        workspaceId: _ws,
         sources: _sources,
         extractedFacts: _facts,
         visits: _visits,
@@ -60,19 +64,19 @@ importExportRouter.post("/import", async (req, res, next) => {
         updatedAt: _u,
         ...fields
       } = raw as Record<string, unknown>;
-      await prisma.restaurant.create({ data: fields as never });
+      await prisma.restaurant.create({ data: { ...fields, workspaceId } as never });
       importedRestaurants++;
     }
 
     if (data.categories?.length) {
       await prisma.category.createMany({
-        data: data.categories.map((c) => ({ name: c.name })),
+        data: data.categories.map((c) => ({ name: c.name, workspaceId })),
         skipDuplicates: true,
       });
     }
     if (data.tags?.length) {
       await prisma.tag.createMany({
-        data: data.tags.map((t) => ({ name: t.name })),
+        data: data.tags.map((t) => ({ name: t.name, workspaceId })),
         skipDuplicates: true,
       });
     }

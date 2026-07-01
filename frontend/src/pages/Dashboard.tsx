@@ -23,19 +23,42 @@ export function Dashboard() {
     }
   }
 
-  const recentlyVisited = [...restaurants]
+  const active = restaurants.filter((r) => !r.blacklisted)
+
+  const recentlyVisited = [...active]
     .filter((r) => r.lastVisitedAt)
     .sort((a, b) => (b.lastVisitedAt ?? '').localeCompare(a.lastVisitedAt ?? ''))
     .slice(0, 5)
 
-  const categoryCounts = restaurants.reduce<Record<string, number>>((acc, r) => {
+  const categoryCounts = active.reduce<Record<string, number>>((acc, r) => {
     for (const c of r.categories) acc[c] = (acc[c] ?? 0) + 1
     return acc
   }, {})
 
+  const stats = {
+    total: active.length,
+    neu: active.filter((r) => r.classification === 'NEW').length,
+    empfehlung: active.filter((r) => r.classification === 'RECOMMENDATION').length,
+    favoriten: active.filter((r) => r.favorite).length,
+  }
+
+  // "Long time no visit": never visited, or last visit > 60 days ago.
+  const sixtyDaysAgo = Date.now() - 60 * 24 * 60 * 60 * 1000
+  const longTimeNoVisit = active
+    .filter((r) => !r.lastVisitedAt || new Date(r.lastVisitedAt).getTime() < sixtyDaysAgo)
+    .sort((a, b) => (a.lastVisitedAt ?? '').localeCompare(b.lastVisitedAt ?? ''))
+    .slice(0, 5)
+
   return (
     <div className="space-y-6">
       <h1 className="text-2xl font-semibold">Dashboard</h1>
+
+      <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
+        <StatCard label="Restaurants" value={stats.total} />
+        <StatCard label="Neu" value={stats.neu} accent="text-blue-700" />
+        <StatCard label="Empfehlung" value={stats.empfehlung} accent="text-green-700" />
+        <StatCard label="Favoriten" value={stats.favoriten} accent="text-amber-500" />
+      </div>
 
       <section className="rounded-md border border-slate-200 bg-white p-5">
         <div className="flex flex-wrap items-center justify-between gap-3">
@@ -98,22 +121,44 @@ export function Dashboard() {
         </section>
 
         <section className="rounded-md border border-slate-200 bg-white p-4">
-          <h2 className="mb-3 text-sm font-semibold text-slate-700">Kategorien</h2>
-          {Object.keys(categoryCounts).length === 0 ? (
-            <p className="text-sm text-slate-500">Keine Kategorien.</p>
+          <h2 className="mb-3 text-sm font-semibold text-slate-700">Lange nicht besucht</h2>
+          {longTimeNoVisit.length === 0 ? (
+            <p className="text-sm text-slate-500">Alles frisch besucht. 🎉</p>
           ) : (
-            <div className="flex flex-wrap gap-2">
-              {Object.entries(categoryCounts)
-                .sort((a, b) => b[1] - a[1])
-                .map(([cat, count]) => (
-                  <span key={cat} className="rounded bg-slate-100 px-2 py-1 text-sm text-slate-700">
-                    {cat} <span className="text-slate-400">{count}</span>
+            <ul className="space-y-1 text-sm">
+              {longTimeNoVisit.map((r) => (
+                <li key={r.id} className="flex justify-between">
+                  <Link to={`/restaurants/${r.id}`} className="text-slate-700 hover:underline">
+                    {r.name}
+                  </Link>
+                  <span className="text-xs text-slate-400">
+                    {r.lastVisitedAt
+                      ? new Date(r.lastVisitedAt).toLocaleDateString('de-DE')
+                      : 'nie'}
                   </span>
-                ))}
-            </div>
+                </li>
+              ))}
+            </ul>
           )}
         </section>
       </div>
+
+      <section className="rounded-md border border-slate-200 bg-white p-4">
+        <h2 className="mb-3 text-sm font-semibold text-slate-700">Kategorien</h2>
+        {Object.keys(categoryCounts).length === 0 ? (
+          <p className="text-sm text-slate-500">Keine Kategorien.</p>
+        ) : (
+          <div className="flex flex-wrap gap-2">
+            {Object.entries(categoryCounts)
+              .sort((a, b) => b[1] - a[1])
+              .map(([cat, count]) => (
+                <span key={cat} className="rounded bg-slate-100 px-2 py-1 text-sm text-slate-700">
+                  {cat} <span className="text-slate-400">{count}</span>
+                </span>
+              ))}
+          </div>
+        )}
+      </section>
 
       <section className="rounded-md border border-slate-200 bg-white p-4">
         <h2 className="mb-2 text-sm font-semibold text-slate-700">Schnellzugriff</h2>
@@ -135,6 +180,15 @@ export function Dashboard() {
           </Link>
         </div>
       </section>
+    </div>
+  )
+}
+
+function StatCard({ label, value, accent }: { label: string; value: number; accent?: string }) {
+  return (
+    <div className="rounded-md border border-slate-200 bg-white p-3">
+      <div className={`text-2xl font-semibold ${accent ?? 'text-slate-900'}`}>{value}</div>
+      <div className="text-xs text-slate-500">{label}</div>
     </div>
   )
 }
