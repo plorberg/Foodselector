@@ -122,7 +122,8 @@ npm run build        # tsc -b && vite build
 - `POST /api/restaurants/:id/visit|favorite|blacklist`
 - `POST /api/analyze/manual|osm|google-places|openai`
 - `POST /api/parse/google-maps-link`
-- `POST /api/decide`, `POST /api/decide/respond`
+- `POST /api/decide` (inkl. `openNow` + `now` für „nur jetzt geöffnete“), `POST /api/decide/respond`
+- `GET /api/decision-rounds/current`, `POST /api/decision-rounds`, `POST /api/decision-rounds/:id/vote|close` (Gruppenabstimmung)
 - `GET/PUT /api/config`, `GET/POST/DELETE /api/categories|tags`
 - `GET/POST/PUT/DELETE /api/decision-profiles`
 - `GET /api/export`, `POST /api/import`

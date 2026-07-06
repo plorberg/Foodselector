@@ -7,6 +7,7 @@ import { analyzeRouter } from "./routes/analyze.js";
 import { authRouter } from "./routes/auth.js";
 import { configRouter } from "./routes/config.js";
 import { decideRouter } from "./routes/decide.js";
+import { decisionRoundsRouter } from "./routes/decisionRounds.js";
 import { googleMapsRouter } from "./routes/googleMaps.js";
 import { importExportRouter } from "./routes/importExport.js";
 import { invitationsRouter } from "./routes/invitations.js";
@@ -59,6 +60,7 @@ export function createApp() {
   // Workspace-scoped data (requires login + membership of X-Workspace-Id).
   app.use("/api/restaurants", requireAuth, withWorkspace, restaurantsRouter);
   app.use("/api", requireAuth, withWorkspace, decideRouter);
+  app.use("/api", requireAuth, withWorkspace, decisionRoundsRouter);
   app.use("/api", requireAuth, withWorkspace, configRouter);
   app.use("/api", requireAuth, withWorkspace, importExportRouter);
 

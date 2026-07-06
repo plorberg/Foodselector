@@ -1,11 +1,94 @@
 @import "tailwindcss";
 
+/* Warm accent for primary actions — a food app shouldn't feel like an admin panel. */
+@theme {
+  --color-accent: oklch(0.65 0.19 41);       /* warm tomato-orange */
+  --color-accent-dark: oklch(0.55 0.19 41);
+}
+
+/*
+ * Dark mode by palette remapping: Tailwind v4 utilities reference colors via
+ * CSS variables, so redefining the slate scale (and the handful of pastel
+ * tones used for badges/banners) under .dark restyles every page at once.
+ */
+:root {
+  color-scheme: light;
+}
+
+.dark {
+  color-scheme: dark;
+
+  --color-white: oklch(0.24 0.02 260);        /* card surfaces */
+  --color-slate-50: oklch(0.18 0.02 260);     /* page background */
+  --color-slate-100: oklch(0.29 0.02 260);
+  --color-slate-200: oklch(0.33 0.02 260);    /* borders */
+  --color-slate-300: oklch(0.42 0.02 260);
+  --color-slate-400: oklch(0.62 0.02 260);
+  --color-slate-500: oklch(0.72 0.015 260);
+  --color-slate-600: oklch(0.80 0.012 260);
+  --color-slate-700: oklch(0.87 0.01 260);
+  --color-slate-800: oklch(0.92 0.008 260);
+  --color-slate-900: oklch(0.96 0.005 260);
+
+  /* Pastel badge/banner backgrounds → deep tinted surfaces. */
+  --color-blue-50: oklch(0.28 0.06 260);
+  --color-blue-100: oklch(0.33 0.08 260);
+  --color-blue-200: oklch(0.42 0.09 260);
+  --color-blue-700: oklch(0.80 0.10 260);
+  --color-blue-800: oklch(0.86 0.08 260);
+  --color-green-50: oklch(0.28 0.05 150);
+  --color-green-100: oklch(0.34 0.07 150);
+  --color-green-200: oklch(0.42 0.08 150);
+  --color-green-600: oklch(0.72 0.15 150);
+  --color-green-700: oklch(0.78 0.14 150);
+  --color-green-800: oklch(0.84 0.11 150);
+  --color-amber-50: oklch(0.28 0.05 80);
+  --color-amber-200: oklch(0.45 0.09 80);
+  --color-amber-400: oklch(0.80 0.14 80);
+  --color-amber-600: oklch(0.78 0.14 70);
+  --color-amber-800: oklch(0.85 0.11 80);
+  --color-red-50: oklch(0.27 0.06 25);
+  --color-red-200: oklch(0.42 0.10 25);
+  --color-red-300: oklch(0.50 0.12 25);
+  --color-red-600: oklch(0.72 0.18 25);
+}
+
 body {
   margin: 0;
-  background-color: #f8fafc;
-  color: #0f172a;
+  background-color: var(--color-slate-50);
+  color: var(--color-slate-900);
 }
 
 .input {
-  @apply w-full rounded-md border border-slate-300 px-3 py-1.5 text-sm;
+  @apply w-full rounded-md border border-slate-300 bg-white px-3 py-1.5 text-sm text-slate-900;
+}
+
+/* The suggestion reveal. */
+@keyframes reveal-pop {
+  0% {
+    opacity: 0;
+    transform: scale(0.92) translateY(8px);
+  }
+  60% {
+    transform: scale(1.02);
+  }
+  100% {
+    opacity: 1;
+    transform: scale(1) translateY(0);
+  }
+}
+.animate-reveal {
+  animation: reveal-pop 0.45s cubic-bezier(0.2, 0.9, 0.3, 1.2);
+}
+
+@keyframes dice-roll {
+  0% { transform: rotate(0deg) scale(1); }
+  25% { transform: rotate(90deg) scale(1.15); }
+  50% { transform: rotate(180deg) scale(1); }
+  75% { transform: rotate(270deg) scale(1.15); }
+  100% { transform: rotate(360deg) scale(1); }
+}
+.animate-dice {
+  display: inline-block;
+  animation: dice-roll 0.7s linear infinite;
 }

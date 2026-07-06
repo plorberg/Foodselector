@@ -32,7 +32,8 @@ export function Config() {
   }
 
   useEffect(() => {
-    loadAll()
+    // Deferred so the effect body itself performs no synchronous setState.
+    void Promise.resolve().then(loadAll)
   }, [])
 
   async function saveConfig() {

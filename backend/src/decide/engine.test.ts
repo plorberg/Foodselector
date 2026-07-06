@@ -122,3 +122,30 @@ test("returns null suggestion when all excluded", () => {
   assert.equal(result.suggestion, null);
   assert.equal(result.excludedCount, 1);
 });
+
+test("openNow excludes closed restaurants but keeps unknown hours", () => {
+  const restaurants = [
+    makeRestaurant({
+      id: "closed",
+      personalRating: 5,
+      openingHours: { weekdayDescriptions: ["Montag: Geschlossen"] },
+    }),
+    makeRestaurant({
+      id: "open",
+      personalRating: 1,
+      openingHours: { weekdayDescriptions: ["Montag: 11:00–22:00 Uhr"] },
+    }),
+    makeRestaurant({ id: "unknown", personalRating: 1 }),
+  ];
+  const result = decide(restaurants, {
+    mode: "balanced",
+    seed: 1,
+    openNow: true,
+    now: { day: 1, minutes: 12 * 60 },
+  });
+  assert.equal(result.excludedCount, 1);
+  const ids = [result.suggestion, ...result.alternatives].map((s) => s?.restaurant.id);
+  assert.ok(!ids.includes("closed"));
+  assert.ok(ids.includes("open"));
+  assert.ok(ids.includes("unknown"));
+});

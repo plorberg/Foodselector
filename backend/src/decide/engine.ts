@@ -1,4 +1,5 @@
 import type { Restaurant, RestaurantClassification } from "@prisma/client";
+import { isOpenAt, type LocalTime } from "./openingHours.js";
 
 export type DecisionMode = "balanced" | "cheap" | "surprise";
 
@@ -12,6 +13,11 @@ export type DecisionRequest = {
   preferFavorites?: boolean;
   suggestionCount?: number;
   seed?: number;
+  // Exclude restaurants that are known to be closed at `now` (the caller's
+  // local time — the server may run in another timezone). Restaurants with
+  // unknown/unparseable opening hours are never excluded.
+  openNow?: boolean;
+  now?: LocalTime;
 };
 
 export type ScoredRestaurant = {
@@ -140,6 +146,10 @@ export function decide(
       return false;
     }
     if (request.maxDistance != null && r.distance != null && r.distance > request.maxDistance) {
+      excludedCount++;
+      return false;
+    }
+    if (request.openNow && request.now && isOpenAt(r.openingHours, request.now) === false) {
       excludedCount++;
       return false;
     }

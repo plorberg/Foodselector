@@ -49,7 +49,8 @@ export function RestaurantDetail() {
   }
 
   useEffect(() => {
-    load()
+    // Deferred so the effect body itself performs no synchronous setState.
+    void Promise.resolve().then(load)
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [id])
 

@@ -12,6 +12,7 @@ import { InviteAccept } from './pages/InviteAccept'
 import { Login } from './pages/Login'
 import { Workspace } from './pages/Workspace'
 import { useAuth } from './lib/AuthContext'
+import { currentTheme, toggleTheme, type Theme } from './lib/theme'
 
 const navItems = [
   { to: '/', label: 'Dashboard' },
@@ -26,6 +27,7 @@ const navItems = [
 function App() {
   const { user, loading, logout, workspaces, activeWorkspace, switchWorkspace } = useAuth()
   const [menuOpen, setMenuOpen] = useState(false)
+  const [theme, setTheme] = useState<Theme>(() => currentTheme())
 
   const linkClass = ({ isActive }: { isActive: boolean }) =>
     isActive ? 'font-medium text-slate-900' : 'text-slate-500 hover:text-slate-900'
@@ -77,6 +79,14 @@ function App() {
               ))}
             </nav>
             <div className="flex items-center gap-3">
+              <button
+                onClick={() => setTheme(toggleTheme())}
+                aria-label="Design wechseln"
+                title="Hell/Dunkel umschalten"
+                className="rounded-md border border-slate-300 px-2 py-1 text-xs text-slate-600 hover:bg-slate-100"
+              >
+                {theme === 'dark' ? '☀️' : '🌙'}
+              </button>
               <button
                 onClick={logout}
                 className="hidden rounded-md border border-slate-300 px-2 py-1 text-xs text-slate-600 hover:bg-slate-100 lg:inline"

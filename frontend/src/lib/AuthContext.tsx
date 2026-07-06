@@ -29,7 +29,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<AuthUser | null>(null)
   const [workspaces, setWorkspaces] = useState<Workspace[]>([])
   const [activeId, setActiveId] = useState<string | null>(getActiveWorkspace())
-  const [loading, setLoading] = useState(true)
+  // Only loading while a stored token is being validated; without a token the
+  // login screen can show immediately.
+  const [loading, setLoading] = useState(() => Boolean(getToken()))
 
   function applyWorkspaces(list: Workspace[]) {
     setWorkspaces(list)
@@ -53,10 +55,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       setWorkspaces([])
       setActiveId(null)
     })
-    if (!getToken()) {
-      setLoading(false)
-      return
-    }
+    if (!getToken()) return
     authApi
       .me()
       .then((res) => {

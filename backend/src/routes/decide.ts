@@ -17,6 +17,13 @@ const decideSchema = z.object({
   preferFavorites: z.boolean().optional(),
   suggestionCount: z.number().int().min(1).max(10).optional(),
   seed: z.number().optional(),
+  openNow: z.boolean().optional(),
+  now: z
+    .object({
+      day: z.number().int().min(0).max(6),
+      minutes: z.number().int().min(0).max(1439),
+    })
+    .optional(),
 });
 
 decideRouter.post("/decide", async (req, res, next) => {

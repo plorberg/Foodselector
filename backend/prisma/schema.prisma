@@ -39,7 +39,8 @@ model User {
   googleId  String?  @unique
   createdAt DateTime @default(now())
 
-  memberships Membership[]
+  memberships   Membership[]
+  decisionVotes DecisionVote[]
 
   @@map("users")
 }
@@ -56,6 +57,7 @@ model Workspace {
   tags             Tag[]
   decisionProfiles DecisionProfile[]
   appSettings      AppSetting[]
+  decisionRounds   DecisionRound[]
 
   @@map("workspaces")
 }
@@ -151,6 +153,7 @@ model Restaurant {
   extractedFacts  ExtractedFact[]
   visits          RestaurantVisit[]
   suggestions     SuggestionHistory[]
+  decisionRounds  DecisionRound[]
 
   @@unique([workspaceId, googlePlaceId])
   @@map("restaurants")
@@ -272,6 +275,44 @@ model AnalysisRun {
   createdAt  DateTime @default(now())
 
   @@map("analysis_runs")
+}
+
+enum DecisionRoundStatus {
+  OPEN
+  ACCEPTED
+  REJECTED
+  CANCELLED
+}
+
+// A group decision: one member puts a suggested restaurant up for a vote,
+// the other members vote yes/no. One open round per workspace at a time.
+model DecisionRound {
+  id              String              @id @default(uuid())
+  workspaceId     String
+  workspace       Workspace           @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  restaurantId    String
+  restaurant      Restaurant          @relation(fields: [restaurantId], references: [id], onDelete: Cascade)
+  createdByUserId String
+  status          DecisionRoundStatus @default(OPEN)
+  createdAt       DateTime            @default(now())
+  closedAt        DateTime?
+
+  votes DecisionVote[]
+
+  @@map("decision_rounds")
+}
+
+model DecisionVote {
+  id        String   @id @default(uuid())
+  roundId   String
+  round     DecisionRound @relation(fields: [roundId], references: [id], onDelete: Cascade)
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  vote      Boolean
+  createdAt DateTime @default(now())
+
+  @@unique([roundId, userId])
+  @@map("decision_votes")
 }
 
 model SuggestionHistory {

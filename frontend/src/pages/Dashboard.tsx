@@ -1,23 +1,51 @@
 import { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
+import { DecisionRoundCard } from '../components/DecisionRoundCard'
 import { restaurantsApi } from '../lib/restaurants'
-import { decideApi, type ScoredRestaurant } from '../lib/decide'
+import {
+  decideApi,
+  decisionRoundsApi,
+  localNow,
+  type DecisionRound,
+  type ScoredRestaurant,
+} from '../lib/decide'
 import type { Restaurant } from '../types/restaurant'
+import { useAuth } from '../lib/AuthContext'
+
+// Captured once per page load — render must not call Date.now() directly.
+const PAGE_LOADED_AT = Date.now()
 
 export function Dashboard() {
+  const { activeWorkspace } = useAuth()
   const [restaurants, setRestaurants] = useState<Restaurant[]>([])
   const [suggestion, setSuggestion] = useState<ScoredRestaurant | null>(null)
   const [loading, setLoading] = useState(false)
+  const [error, setError] = useState<string | null>(null)
+  const [round, setRound] = useState<DecisionRound | null>(null)
 
+  // Re-fetch when the user switches groups in the header. Deferred so the
+  // effect body itself performs no synchronous setState.
   useEffect(() => {
-    restaurantsApi.list().then(setRestaurants).catch(() => {})
-  }, [])
+    void Promise.resolve().then(() => {
+      setSuggestion(null)
+      setError(null)
+      restaurantsApi.list().then(setRestaurants).catch(() => {})
+      decisionRoundsApi.current().then(setRound).catch(() => {})
+    })
+  }, [activeWorkspace?.id])
 
   async function quickDecide() {
     setLoading(true)
+    setError(null)
     try {
-      const res = await decideApi.decide({ mode: 'balanced' })
+      // "Schnellvorschlag" means right now — skip restaurants known to be closed.
+      const res = await decideApi.decide({ mode: 'balanced', openNow: true, now: localNow() })
       setSuggestion(res.suggestion)
+      if (!res.suggestion) {
+        setError('Kein passendes Restaurant gefunden — Filter auf der Entscheiden-Seite lockern.')
+      }
+    } catch {
+      setError('Vorschlag konnte nicht geladen werden.')
     } finally {
       setLoading(false)
     }
@@ -43,15 +71,50 @@ export function Dashboard() {
   }
 
   // "Long time no visit": never visited, or last visit > 60 days ago.
-  const sixtyDaysAgo = Date.now() - 60 * 24 * 60 * 60 * 1000
+  const sixtyDaysAgo = PAGE_LOADED_AT - 60 * 24 * 60 * 60 * 1000
   const longTimeNoVisit = active
     .filter((r) => !r.lastVisitedAt || new Date(r.lastVisitedAt).getTime() < sixtyDaysAgo)
     .sort((a, b) => (a.lastVisitedAt ?? '').localeCompare(b.lastVisitedAt ?? ''))
     .slice(0, 5)
 
+  if (restaurants.length === 0) {
+    return (
+      <div className="space-y-6">
+        <h1 className="text-2xl font-semibold">Dashboard</h1>
+        <section className="rounded-lg border border-slate-200 bg-white p-8 text-center">
+          <p className="text-4xl">🍽️</p>
+          <h2 className="mt-2 text-lg font-semibold text-slate-800">
+            Willkommen beim Food Selector!
+          </h2>
+          <p className="mx-auto mt-1 max-w-md text-sm text-slate-500">
+            Füge deine ersten Restaurants hinzu — am schnellsten geht's, indem du einen
+            Google-Maps-Link oder Text über die Analyse einliest. Danach schlägt dir der
+            Foodselector vor, wo es hingeht.
+          </p>
+          <div className="mt-4 flex flex-wrap justify-center gap-2 text-sm">
+            <Link
+              to="/analyze"
+              className="rounded-md bg-accent px-4 py-2 font-medium text-white hover:bg-accent-dark"
+            >
+              Restaurant analysieren
+            </Link>
+            <Link
+              to="/restaurants/new"
+              className="rounded-md border border-slate-300 px-4 py-2 hover:bg-slate-100"
+            >
+              Manuell anlegen
+            </Link>
+          </div>
+        </section>
+      </div>
+    )
+  }
+
   return (
     <div className="space-y-6">
       <h1 className="text-2xl font-semibold">Dashboard</h1>
+
+      {round && round.status === 'OPEN' && <DecisionRoundCard round={round} onUpdate={setRound} />}
 
       <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
         <StatCard label="Restaurants" value={stats.total} />
@@ -72,9 +135,9 @@ export function Dashboard() {
             <button
               onClick={quickDecide}
               disabled={loading}
-              className="rounded-md bg-slate-900 px-4 py-2 text-sm font-medium text-white hover:bg-slate-700 disabled:opacity-50"
+              className="rounded-md bg-accent px-4 py-2 text-sm font-medium text-white hover:bg-accent-dark disabled:opacity-50"
             >
-              {loading ? 'Wählt…' : 'Schnellvorschlag'}
+              {loading ? 'Wählt…' : suggestion ? '🎲 Neu würfeln' : '🎲 Schnellvorschlag'}
             </button>
             <Link
               to="/decide"
@@ -84,8 +147,9 @@ export function Dashboard() {
             </Link>
           </div>
         </div>
+        {error && <p className="mt-3 text-sm text-red-600">{error}</p>}
         {suggestion && (
-          <div className="mt-4 rounded border border-slate-100 bg-slate-50 p-3">
+          <div className="animate-reveal mt-4 rounded-md border border-accent/40 bg-accent/5 p-3">
             <Link
               to={`/restaurants/${suggestion.restaurant.id}`}
               className="font-medium text-slate-900 hover:underline"

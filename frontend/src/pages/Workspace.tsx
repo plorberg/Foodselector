@@ -39,8 +39,11 @@ export function Workspace() {
   }
 
   useEffect(() => {
-    loadMembers()
-    loadMyInvites()
+    // Deferred so the effect body itself performs no synchronous setState.
+    void Promise.resolve().then(() => {
+      loadMembers()
+      loadMyInvites()
+    })
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [activeWorkspace?.id])
 

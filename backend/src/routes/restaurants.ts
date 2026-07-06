@@ -126,9 +126,22 @@ restaurantsRouter.post("/:id/visit", async (req, res, next) => {
     const visit = await prisma.restaurantVisit.create({
       data: { restaurantId: req.params.id, visitedAt, rating: data.rating, notes: data.notes },
     });
+
+    // A rated visit refreshes personalRating (average over all rated visits),
+    // which feeds directly into the decision engine.
+    let personalRating: number | undefined;
+    if (data.rating != null) {
+      const agg = await prisma.restaurantVisit.aggregate({
+        where: { restaurantId: req.params.id, rating: { not: null } },
+        _avg: { rating: true },
+      });
+      if (agg._avg.rating != null) {
+        personalRating = Math.round(agg._avg.rating * 10) / 10;
+      }
+    }
     await prisma.restaurant.update({
       where: { id: req.params.id },
-      data: { lastVisitedAt: visitedAt },
+      data: { lastVisitedAt: visitedAt, ...(personalRating != null && { personalRating }) },
     });
 
     res.status(201).json(visit);
