@@ -59,7 +59,13 @@ Prüfen, dass `backend/.env` **nicht** mit hochgeladen wurde
    | `OVERPASS_API_URL`      | `https://overpass-api.de/api/interpreter`       |
    | `OPENAI_API_KEY`        | (optional) dein OpenAI-Key                      |
    | `GOOGLE_PLACES_API_KEY` | (optional) dein Google-Places-Key               |
+   | `SMTP_URL`              | (optional) SMTP-Server für Einladungs-E-Mails, z. B. `smtps://user:pass@smtp.example.com:465` |
+   | `EMAIL_FROM`            | (optional) Absenderadresse der Einladungs-E-Mails |
+   | `APP_BASE_URL`          | (optional) öffentliche Frontend-URL für Einladungslinks |
    | `CORS_ORIGIN`           | **vorerst leer lassen** – wird in Teil 4 gesetzt|
+
+   > Ohne `SMTP_URL` + `EMAIL_FROM` werden keine Einladungs-E-Mails versendet;
+   > Einladungen funktionieren dann über kopierbare Einladungslinks.
 
    > `PORT` nicht setzen – Render gibt den Port automatisch vor, und der Server
    > liest ihn aus `process.env.PORT` (`backend/src/index.ts`).

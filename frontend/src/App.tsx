@@ -8,6 +8,7 @@ import { Analyze } from './pages/Analyze'
 import { Decide } from './pages/Decide'
 import { Config } from './pages/Config'
 import { ImportExport } from './pages/ImportExport'
+import { InviteAccept } from './pages/InviteAccept'
 import { Login } from './pages/Login'
 import { Workspace } from './pages/Workspace'
 import { useAuth } from './lib/AuthContext'
@@ -19,7 +20,7 @@ const navItems = [
   { to: '/decide', label: 'Entscheiden' },
   { to: '/config', label: 'Konfiguration' },
   { to: '/import-export', label: 'Import/Export' },
-  { to: '/workspace', label: 'Verwaltung' },
+  { to: '/workspace', label: 'Gruppe' },
 ]
 
 function App() {
@@ -57,7 +58,7 @@ function App() {
                   value={activeWorkspace?.id ?? ''}
                   onChange={(e) => switchWorkspace(e.target.value)}
                   className="rounded-md border border-slate-300 px-2 py-1 text-xs text-slate-600"
-                  title="Restaurantverwaltung wechseln"
+                  title="Gruppe wechseln"
                 >
                   {workspaces.map((w) => (
                     <option key={w.id} value={w.id}>
@@ -136,6 +137,7 @@ function App() {
           <Route path="/config" element={<Config />} />
           <Route path="/import-export" element={<ImportExport />} />
           <Route path="/workspace" element={<Workspace />} />
+          <Route path="/invite/:token" element={<InviteAccept />} />
         </Routes>
       </main>
     </div>

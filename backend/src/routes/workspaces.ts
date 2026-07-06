@@ -1,8 +1,17 @@
 import { Router } from "express";
 import { z } from "zod";
+import { sendInvitationEmail } from "../lib/mailer.js";
 import { prisma } from "../lib/prisma.js";
 import { getUserWorkspaces } from "../lib/workspace.js";
 import { ApiError } from "../middleware/errorHandler.js";
+
+// Base URL of the frontend, used for invite links in emails.
+function appBaseUrl(): string {
+  const base =
+    process.env.APP_BASE_URL ??
+    (process.env.CORS_ORIGIN ?? "http://localhost:5173").split(",")[0];
+  return base.trim().replace(/\/+$/, "");
+}
 
 export const workspacesRouter = Router();
 
@@ -64,7 +73,11 @@ workspacesRouter.get("/:id/members", async (req, res, next) => {
         name: m.user.name,
         role: m.role,
       })),
-      pendingInvitations: invitations.map((i) => ({ id: i.id, email: i.email })),
+      pendingInvitations: invitations.map((i) => ({
+        id: i.id,
+        email: i.email,
+        token: i.token,
+      })),
     });
   } catch (err) {
     next(err);
@@ -97,7 +110,26 @@ workspacesRouter.post("/:id/invitations", async (req, res, next) => {
         data: { workspaceId: req.params.id, email, invitedByUserId: req.user!.userId },
       }));
 
-    res.status(201).json({ id: invitation.id, email: invitation.email });
+    const [workspace, inviter] = await Promise.all([
+      prisma.workspace.findUnique({ where: { id: req.params.id }, select: { name: true } }),
+      prisma.user.findUnique({
+        where: { id: req.user!.userId },
+        select: { name: true, email: true },
+      }),
+    ]);
+    const emailSent = await sendInvitationEmail({
+      to: email,
+      workspaceName: workspace?.name ?? "Food Selector",
+      inviterName: inviter?.name ?? inviter?.email ?? null,
+      inviteUrl: `${appBaseUrl()}/invite/${invitation.token}`,
+    });
+
+    res.status(201).json({
+      id: invitation.id,
+      email: invitation.email,
+      token: invitation.token,
+      emailSent,
+    });
   } catch (err) {
     next(err);
   }

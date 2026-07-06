@@ -89,6 +89,13 @@ Backend (`backend/.env`, siehe `backend/.env.example`):
 | `OVERPASS_API_URL`      | nein    | Overpass-Endpoint (Default öffentlicher Mirror)      |
 | `GOOGLE_PLACES_API_KEY` | nein    | aktiviert den Google-Places-Analyzer                 |
 | `OPENAI_API_KEY`        | nein    | aktiviert den OpenAI-Analyzer (≠ ChatGPT-Abo!)       |
+| `SMTP_URL`              | nein    | SMTP-Server für Einladungs-E-Mails (z. B. `smtps://user:pass@host:465`) |
+| `EMAIL_FROM`            | nein    | Absenderadresse für Einladungs-E-Mails               |
+| `APP_BASE_URL`          | nein    | öffentliche Frontend-URL für Einladungslinks (Default: erste `CORS_ORIGIN`) |
+
+**Einladungen:** Ohne `SMTP_URL` + `EMAIL_FROM` werden **keine E-Mails**
+versendet — Einladungen funktionieren dann über teilbare Einladungslinks
+(`/invite/<token>`), die der Owner in der Gruppen-Ansicht kopieren kann.
 
 Frontend (optional): `VITE_API_URL` — Basis-URL der API in Produktion (Default
 `/api`, was den Dev-Proxy bzw. Same-Origin nutzt).

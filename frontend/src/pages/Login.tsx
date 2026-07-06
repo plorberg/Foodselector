@@ -1,5 +1,4 @@
 import { useEffect, useRef, useState } from 'react'
-import { useNavigate } from 'react-router-dom'
 import { useAuth } from '../lib/AuthContext'
 
 // Minimal typing for the Google Identity Services global.
@@ -20,7 +19,6 @@ const GOOGLE_CLIENT_ID = import.meta.env.VITE_GOOGLE_CLIENT_ID as string | undef
 
 export function Login() {
   const { loginWithGoogle, devLogin } = useAuth()
-  const navigate = useNavigate()
   const buttonRef = useRef<HTMLDivElement>(null)
   const [error, setError] = useState<string | null>(null)
   const [devEmail, setDevEmail] = useState('')
@@ -34,10 +32,11 @@ export function Login() {
       if (!window.google || !buttonRef.current) return
       window.google.accounts.id.initialize({
         client_id: GOOGLE_CLIENT_ID,
+        // After login App re-renders into the routed app at the current URL,
+        // so deep links (e.g. /invite/<token>) survive the login screen.
         callback: async (r) => {
           try {
             await loginWithGoogle(r.credential)
-            navigate('/')
           } catch {
             setError('Google-Anmeldung fehlgeschlagen.')
           }
@@ -53,14 +52,13 @@ export function Login() {
     return () => {
       script.remove()
     }
-  }, [loginWithGoogle, navigate])
+  }, [loginWithGoogle])
 
   async function handleDevLogin(e: React.FormEvent) {
     e.preventDefault()
     setError(null)
     try {
       await devLogin(devEmail)
-      navigate('/')
     } catch {
       setError('Dev-Login fehlgeschlagen (nur lokal verfügbar).')
     }

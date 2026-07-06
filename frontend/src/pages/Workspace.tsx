@@ -2,7 +2,9 @@ import { useEffect, useState } from 'react'
 import { useAuth } from '../lib/AuthContext'
 import {
   invitationsApi,
+  inviteUrl,
   workspacesApi,
+  type InviteResult,
   type Member,
   type MyInvitation,
   type PendingInvitation,
@@ -17,6 +19,7 @@ export function Workspace() {
   const [newWsName, setNewWsName] = useState('')
   const [error, setError] = useState<string | null>(null)
   const [message, setMessage] = useState<string | null>(null)
+  const [lastInvite, setLastInvite] = useState<InviteResult | null>(null)
 
   const isOwner = activeWorkspace?.role === 'OWNER'
 
@@ -46,14 +49,20 @@ export function Workspace() {
     if (!activeWorkspace) return
     setError(null)
     setMessage(null)
+    setLastInvite(null)
     try {
-      await workspacesApi.invite(activeWorkspace.id, inviteEmail)
+      const result = await workspacesApi.invite(activeWorkspace.id, inviteEmail)
       setInviteEmail('')
-      setMessage('Einladung erstellt.')
+      setLastInvite(result)
       loadMembers()
     } catch (err) {
       setError(translate(err instanceof Error ? err.message : 'error'))
     }
+  }
+
+  async function copyInviteLink(token: string) {
+    await navigator.clipboard.writeText(inviteUrl(token))
+    setMessage('Einladungslink kopiert.')
   }
 
   async function createWorkspace(e: React.FormEvent) {
@@ -78,7 +87,7 @@ export function Workspace() {
 
   return (
     <div className="max-w-2xl space-y-6">
-      <h1 className="text-2xl font-semibold">Verwaltung</h1>
+      <h1 className="text-2xl font-semibold">Gruppe</h1>
 
       {myInvites.length > 0 && (
         <section className="rounded-md border border-blue-200 bg-blue-50 p-4">
@@ -87,7 +96,7 @@ export function Workspace() {
             {myInvites.map((i) => (
               <li key={i.id} className="flex items-center justify-between">
                 <span>
-                  Verwaltung <strong>{i.workspaceName}</strong>
+                  Gruppe <strong>{i.workspaceName}</strong>
                 </span>
                 <button
                   onClick={() => acceptInvite(i.id)}
@@ -103,7 +112,7 @@ export function Workspace() {
 
       <section className="rounded-md border border-slate-200 bg-white p-4">
         <h2 className="mb-1 text-sm font-semibold text-slate-700">
-          Aktive Verwaltung: {activeWorkspace?.name}
+          Aktive Gruppe: {activeWorkspace?.name}
         </h2>
         <p className="mb-3 text-xs text-slate-400">
           {isOwner ? 'Du bist Owner.' : 'Du bist Mitglied.'}
@@ -114,12 +123,28 @@ export function Workspace() {
         </h3>
         <ul className="mb-4 divide-y divide-slate-100 text-sm">
           {members.map((m) => (
-            <li key={m.userId} className="flex items-center justify-between py-1.5">
-              <span>
+            <li key={m.userId} className="flex items-center justify-between gap-2 py-1.5">
+              <span className="min-w-0 truncate">
                 {m.name ? `${m.name} · ` : ''}
                 {m.email}
               </span>
-              <span className="text-xs text-slate-400">{m.role === 'OWNER' ? 'Owner' : 'Mitglied'}</span>
+              <span className="flex shrink-0 items-center gap-3">
+                <span className="text-xs text-slate-400">
+                  {m.role === 'OWNER' ? 'Owner' : 'Mitglied'}
+                </span>
+                {isOwner && m.role === 'MEMBER' && (
+                  <button
+                    onClick={async () => {
+                      if (!window.confirm(`${m.email} aus der Gruppe entfernen?`)) return
+                      await workspacesApi.removeMember(activeWorkspace!.id, m.userId)
+                      loadMembers()
+                    }}
+                    className="text-xs text-red-600 hover:underline"
+                  >
+                    Entfernen
+                  </button>
+                )}
+              </span>
             </li>
           ))}
         </ul>
@@ -142,6 +167,34 @@ export function Workspace() {
                 Einladen
               </button>
             </form>
+            {lastInvite && (
+              <div
+                className={`mt-3 rounded-md border p-3 text-sm ${
+                  lastInvite.emailSent
+                    ? 'border-green-200 bg-green-50 text-green-800'
+                    : 'border-amber-200 bg-amber-50 text-amber-800'
+                }`}
+              >
+                {lastInvite.emailSent ? (
+                  <p>
+                    Einladung an <strong>{lastInvite.email}</strong> per E-Mail versendet.
+                  </p>
+                ) : (
+                  <p>
+                    Einladung für <strong>{lastInvite.email}</strong> erstellt. Es wurde{' '}
+                    <strong>keine E-Mail versendet</strong> (E-Mail-Versand ist nicht
+                    konfiguriert) — teile den Einladungslink selbst, z.&nbsp;B. per
+                    Messenger oder E-Mail.
+                  </p>
+                )}
+                <button
+                  onClick={() => copyInviteLink(lastInvite.token)}
+                  className="mt-2 rounded-md border border-current px-2 py-1 text-xs font-medium hover:bg-white/50"
+                >
+                  Einladungslink kopieren
+                </button>
+              </div>
+            )}
             {pending.length > 0 && (
               <div className="mt-3">
                 <h3 className="mb-1 text-xs font-semibold uppercase tracking-wide text-slate-400">
@@ -149,17 +202,25 @@ export function Workspace() {
                 </h3>
                 <ul className="space-y-1 text-sm">
                   {pending.map((p) => (
-                    <li key={p.id} className="flex items-center justify-between">
-                      <span className="text-slate-600">{p.email}</span>
-                      <button
-                        onClick={async () => {
-                          await workspacesApi.revokeInvitation(activeWorkspace!.id, p.id)
-                          loadMembers()
-                        }}
-                        className="text-xs text-red-600 hover:underline"
-                      >
-                        Zurückziehen
-                      </button>
+                    <li key={p.id} className="flex items-center justify-between gap-2">
+                      <span className="min-w-0 truncate text-slate-600">{p.email}</span>
+                      <span className="flex shrink-0 gap-3">
+                        <button
+                          onClick={() => copyInviteLink(p.token)}
+                          className="text-xs text-slate-600 hover:underline"
+                        >
+                          Link kopieren
+                        </button>
+                        <button
+                          onClick={async () => {
+                            await workspacesApi.revokeInvitation(activeWorkspace!.id, p.id)
+                            loadMembers()
+                          }}
+                          className="text-xs text-red-600 hover:underline"
+                        >
+                          Zurückziehen
+                        </button>
+                      </span>
                     </li>
                   ))}
                 </ul>
@@ -173,13 +234,13 @@ export function Workspace() {
       </section>
 
       <section className="rounded-md border border-slate-200 bg-white p-4">
-        <h2 className="mb-2 text-sm font-semibold text-slate-700">Neue Verwaltung anlegen</h2>
+        <h2 className="mb-2 text-sm font-semibold text-slate-700">Neue Gruppe anlegen</h2>
         <form onSubmit={createWorkspace} className="flex gap-2">
           <input
             required
             value={newWsName}
             onChange={(e) => setNewWsName(e.target.value)}
-            placeholder="Name der neuen Verwaltung"
+            placeholder="Name der neuen Gruppe"
             className="input"
           />
           <button
