@@ -1,24 +1,39 @@
 const THEME_KEY = "fs_theme";
 
-export type Theme = "light" | "dark";
+// "system" follows the OS preference (including live changes while the app
+// is open); "light"/"dark" are manual overrides.
+export type ThemePreference = "system" | "light" | "dark";
 
-export function currentTheme(): Theme {
+const systemDark = window.matchMedia("(prefers-color-scheme: dark)");
+
+export function themePreference(): ThemePreference {
   const stored = localStorage.getItem(THEME_KEY);
-  if (stored === "light" || stored === "dark") return stored;
-  return window.matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light";
+  return stored === "light" || stored === "dark" ? stored : "system";
 }
 
-export function applyTheme(theme: Theme) {
-  document.documentElement.classList.toggle("dark", theme === "dark");
+export function resolvedTheme(pref: ThemePreference = themePreference()): "light" | "dark" {
+  if (pref === "system") return systemDark.matches ? "dark" : "light";
+  return pref;
 }
 
-export function toggleTheme(): Theme {
-  const next: Theme = currentTheme() === "dark" ? "light" : "dark";
-  localStorage.setItem(THEME_KEY, next);
-  applyTheme(next);
+function apply(pref: ThemePreference) {
+  document.documentElement.classList.toggle("dark", resolvedTheme(pref) === "dark");
+}
+
+// Auto → Hell → Dunkel → Auto …
+export function cycleThemePreference(): ThemePreference {
+  const order: ThemePreference[] = ["system", "light", "dark"];
+  const next = order[(order.indexOf(themePreference()) + 1) % order.length];
+  if (next === "system") localStorage.removeItem(THEME_KEY);
+  else localStorage.setItem(THEME_KEY, next);
+  apply(next);
   return next;
 }
 
 export function initTheme() {
-  applyTheme(currentTheme());
+  apply(themePreference());
+  // Follow live OS changes while in "system" mode.
+  systemDark.addEventListener("change", () => {
+    if (themePreference() === "system") apply("system");
+  });
 }

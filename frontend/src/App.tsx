@@ -12,7 +12,13 @@ import { InviteAccept } from './pages/InviteAccept'
 import { Login } from './pages/Login'
 import { Workspace } from './pages/Workspace'
 import { useAuth } from './lib/AuthContext'
-import { currentTheme, toggleTheme, type Theme } from './lib/theme'
+import { cycleThemePreference, themePreference, type ThemePreference } from './lib/theme'
+
+const THEME_LABEL: Record<ThemePreference, { icon: string; title: string }> = {
+  system: { icon: '🌓', title: 'Design: automatisch (folgt der Systemeinstellung)' },
+  light: { icon: '☀️', title: 'Design: hell' },
+  dark: { icon: '🌙', title: 'Design: dunkel' },
+}
 
 const navItems = [
   { to: '/', label: 'Dashboard' },
@@ -27,7 +33,7 @@ const navItems = [
 function App() {
   const { user, loading, logout, workspaces, activeWorkspace, switchWorkspace } = useAuth()
   const [menuOpen, setMenuOpen] = useState(false)
-  const [theme, setTheme] = useState<Theme>(() => currentTheme())
+  const [themePref, setThemePref] = useState<ThemePreference>(() => themePreference())
 
   const linkClass = ({ isActive }: { isActive: boolean }) =>
     isActive ? 'font-medium text-slate-900' : 'text-slate-500 hover:text-slate-900'
@@ -80,12 +86,13 @@ function App() {
             </nav>
             <div className="flex items-center gap-3">
               <button
-                onClick={() => setTheme(toggleTheme())}
+                onClick={() => setThemePref(cycleThemePreference())}
                 aria-label="Design wechseln"
-                title="Hell/Dunkel umschalten"
+                title={THEME_LABEL[themePref].title}
                 className="rounded-md border border-slate-300 px-2 py-1 text-xs text-slate-600 hover:bg-slate-100"
               >
-                {theme === 'dark' ? '☀️' : '🌙'}
+                {THEME_LABEL[themePref].icon}
+                {themePref === 'system' && <span className="ml-1">Auto</span>}
               </button>
               <button
                 onClick={logout}
